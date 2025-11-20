@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="TourLICA emblem">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="orbit" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#facc15" stop-opacity="0.6" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#bg)" />
+  <circle cx="100" cy="100" r="68" fill="rgba(15,23,42,0.25)" />
+  <path d="M40 110c28 10 92 10 120 0" fill="none" stroke="url(#orbit)" stroke-width="8" stroke-linecap="round" />
+  <path d="M70 76c20 9 48 9 68 0" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="4" stroke-linecap="round" />
+  <path d="M112 56l36 36-60-8-16-16 8 60-36-36z" fill="#fff" opacity="0.95" />
+  <path d="M76 124l10 10" stroke="#f8fafc" stroke-width="6" stroke-linecap="round" />
+</svg>
