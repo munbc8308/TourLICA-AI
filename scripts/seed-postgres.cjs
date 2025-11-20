@@ -1,14 +1,29 @@
 #!/usr/bin/env node
 const { Pool } = require('pg');
 
-const connectionString = process.env.POSTGRES_URL;
+function buildConfig() {
+  if (process.env.POSTGRES_URL && process.env.POSTGRES_URL.trim().length > 0) {
+    return { connectionString: process.env.POSTGRES_URL };
+  }
 
-if (!connectionString) {
-  console.warn('POSTGRES_URL가 설정되지 않아 Postgres 시드를 건너뜁니다.');
-  process.exit(0);
+  const required = ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DATABASE', 'POSTGRES_USER', 'POSTGRES_PASSWORD'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length) {
+    console.warn(`Postgres 시드를 건너뜁니다. 환경 변수 누락: ${missing.join(', ')}`);
+    process.exit(0);
+  }
+
+  return {
+    host: process.env.POSTGRES_HOST,
+    port: Number(process.env.POSTGRES_PORT),
+    database: process.env.POSTGRES_DATABASE,
+    user: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    ssl: { rejectUnauthorized: false }
+  };
 }
 
-const pool = new Pool({ connectionString });
+const pool = new Pool(buildConfig());
 
 const schemaSql = `
 CREATE TABLE IF NOT EXISTS accounts (

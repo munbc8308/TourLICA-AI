@@ -40,14 +40,19 @@ Next.js 서버 컴포넌트와 API 라우트는 `pg`를 이용해 PostgreSQL 데
 `.env.example`를 참고해 `.env.local`을 만들고 값을 채웁니다.
 
 ```
-POSTGRES_URL=postgresql://tourLica_ai_blindsight:f7ae4eea5cc93c7663a10cc39155707dfacdd037@6svfuf.h.filess.io:5434/tourLica_ai_blindsight
+POSTGRES_URL=
+POSTGRES_HOST=6svfuf.h.filess.io
+POSTGRES_PORT=5434
+POSTGRES_DATABASE=tourLica_ai_blindsight
+POSTGRES_USER=tourLica_ai_blindsight
+POSTGRES_PASSWORD=f7ae4eea5cc93c7663a10cc39155707dfacdd037
 KAFKA_CLIENT_ID=tourlica-web
 KAFKA_BROKERS=localhost:19092
 KAFKA_TOPIC=tourlica-events
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
-- PostgreSQL: URI는 Supabase/Render 등에서 발급받은 접속 문자열을 사용하세요. 기본값은 제공된 테스트 DB입니다.
+- PostgreSQL: `POSTGRES_URL`을 비워두면 호스트/포트/DB/사용자/비밀번호 조합으로 접속합니다. SSL 이슈가 있는 호스트를 위한 기본 샘플 값이 포함되어 있습니다.
 - Kafka: Redpanda 컨테이너가 `localhost:19092`에서 실행되도록 설정했습니다.
 - Google Maps: JavaScript API 키를 입력하세요.
 

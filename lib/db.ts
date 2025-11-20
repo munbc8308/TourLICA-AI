@@ -1,17 +1,32 @@
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 
 declare global {
   // eslint-disable-next-line no-var
   var __tourlica_pg_pool__: Pool | undefined;
 }
 
-const connectionString = process.env.POSTGRES_URL;
+function buildConfig(): PoolConfig {
+  if (process.env.POSTGRES_URL && process.env.POSTGRES_URL.trim().length > 0) {
+    return { connectionString: process.env.POSTGRES_URL };
+  }
 
-if (!connectionString) {
-  throw new Error('POSTGRES_URL 환경 변수를 설정하세요.');
+  const required = ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DATABASE', 'POSTGRES_USER', 'POSTGRES_PASSWORD'] as const;
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length) {
+    throw new Error(`PostgreSQL 환경 변수가 누락되었습니다: ${missing.join(', ')}`);
+  }
+
+  return {
+    host: process.env.POSTGRES_HOST,
+    port: Number(process.env.POSTGRES_PORT),
+    database: process.env.POSTGRES_DATABASE,
+    user: process.env.POSTGRES_USER,
+    password: process.env.POSTGRES_PASSWORD,
+    ssl: { rejectUnauthorized: false }
+  };
 }
 
-export const pool = global.__tourlica_pg_pool__ ?? new Pool({ connectionString });
+export const pool = global.__tourlica_pg_pool__ ?? new Pool(buildConfig());
 
 if (!global.__tourlica_pg_pool__) {
   global.__tourlica_pg_pool__ = pool;
