@@ -4,7 +4,7 @@ TourLICA-AI는 Next.js App Router, Firebase, Kafka, Google Maps를 사용한 여
 
 ## Project Structure & Module Organization
 - `app/` – App Router 페이지, API Route Handler, 레이아웃, 글로벌 스타일. UI 변경 시 해당 경로에서 진행합니다.
-- `lib/` – Firebase Admin 초기화(`firebaseAdmin.ts`), Firestore 쿼리 헬퍼(`accounts.ts`, `destinations.ts` 등)를 둡니다.
+- `lib/` – Firebase 클라이언트 초기화(`firebaseClient.ts`), Firestore 쿼리 헬퍼(`accounts.ts`, `destinations.ts` 등)를 둡니다.
 - `public/` – 정적 자산(파비콘, 로고). 지도 마커나 일러스트 리소스도 여기에 추가하세요.
 - `scripts/` – 자동화 스크립트(`seed-firebase.cjs`, `kafka-create-topic.sh`). 새 스크립트는 README에 사용법을 적습니다.
 
@@ -21,7 +21,7 @@ Docker로 Redpanda를 실행해야 Kafka 라우트를 테스트할 수 있습니
 
 ## Coding Style & Naming Conventions
 - TypeScript + React 18 (App Router). 서버 구성요소/Route Handler는 async/await 사용.
-- Firebase Admin SDK는 반드시 `lib/firebaseAdmin.ts`를 통해 초기화하고, 다중 앱 생성을 피하세요.
+- Firebase Web SDK(`firebase/app`, `firebase/firestore`)는 `lib/firebaseClient.ts`를 통해 초기화하고, 다중 앱 생성을 피하세요.
 - CSS는 `app/globals.css`에 정의하거나 CSS Modules/Styled Components를 사용하되 일관되게 작성합니다.
 - 환경 변수는 `.env.local`에만 저장하고, `NEXT_PUBLIC_` 접두사를 통해 클라이언트에서 필요한 값만 노출합니다.
 
@@ -35,6 +35,6 @@ Docker로 Redpanda를 실행해야 Kafka 라우트를 테스트할 수 있습니
 - Firebase/Kafka 설정을 수정하면 `.env.example`, README, PRODUCT.md 등을 함께 업데이트하십시오.
 
 ## Security & Configuration Tips
-- Firebase 서비스 계정 키, Maps API 키, Kafka 인증 정보는 절대 커밋하지 않습니다.
+- Firebase API 키, Maps API 키, Kafka 인증 정보는 절대 커밋하지 않습니다.
 - Firestore는 최소 권한 원칙으로 구성하고, 민감 데이터는 암호화/마스킹하세요.
 - Kafka 이벤트에는 PII를 포함하지 말고, 필요 시 토큰화된 식별자만 전달하세요.

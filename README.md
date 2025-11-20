@@ -34,16 +34,13 @@ docker compose up -d redpanda
 - `data/sql/` – 스키마와 기본 시드 SQL 스크립트
 - `configs/`, `scripts/` 등은 필요 시 추가하세요. 구조화 지침은 `AGENTS.md` 참고
 
-Next.js 서버 컴포넌트와 API 라우트는 Firebase Admin SDK를 이용해 Firestore 데이터를 읽습니다. `.env.local`에 Firebase 서비스 계정 정보를 입력해야 하며, `npm run seed:firebase` 명령으로 샘플 데이터(계정, 여행지)를 Firestore에 채워둘 수 있습니다.
+Next.js 서버 컴포넌트와 API 라우트는 Firebase Web SDK를 이용해 Firestore 데이터를 읽습니다. `.env.local`에 Firebase 웹 앱 설정을 입력하고 `npm run seed:firebase` 명령으로 샘플 데이터(계정, 여행지)를 Firestore에 채워둘 수 있습니다.
 
 ### 환경 변수
 
 `.env.example`를 참고해 `.env.local`을 만들고 값을 채웁니다.
 
 ```
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=service-account@example.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyC56nnm68wC60MaO7yH5VojfXQ9g24ECmI
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=troulica-27b49.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=troulica-27b49
@@ -56,7 +53,7 @@ KAFKA_TOPIC=tourlica-events
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
-- Firebase: 콘솔에서 서비스 계정을 생성하고 위 값으로 복사합니다. `FIREBASE_PRIVATE_KEY`는 개행을 `\n`으로 치환해 문자열로 입력하세요.
+- Firebase: 콘솔에서 웹 앱 구성을 확인하고 위 값으로 복사하세요.
 - Kafka: Redpanda 컨테이너가 `localhost:19092`에서 실행되도록 설정했습니다.
 - Google Maps: JavaScript API 키를 입력하세요.
 

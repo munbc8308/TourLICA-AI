@@ -1,4 +1,5 @@
-import { getDb } from './firebaseAdmin';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from './firebaseClient';
 
 export interface Destination {
   id: string;
@@ -10,7 +11,6 @@ export interface Destination {
 }
 
 export async function getDestinations(): Promise<Destination[]> {
-  const firestore = getDb();
-  const snapshot = await firestore.collection('destinations').get();
+  const snapshot = await getDocs(collection(db, 'destinations'));
   return snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<Destination, 'id'>) }));
 }
