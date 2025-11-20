@@ -18,7 +18,7 @@ function buildConfig() {
     process.exit(0);
   }
 
-  return {
+  const config = {
     host: process.env.POSTGRES_HOST,
     port: Number(process.env.POSTGRES_PORT),
     database: process.env.POSTGRES_DATABASE,
@@ -26,6 +26,13 @@ function buildConfig() {
     password: process.env.POSTGRES_PASSWORD,
     ssl: parseSsl()
   };
+
+  const schema = process.env.POSTGRES_SCHEMA?.trim();
+  if (schema) {
+    config.options = `-c search_path=${schema}`;
+  }
+
+  return config;
 }
 
 const pool = new Pool(buildConfig());
@@ -74,6 +81,10 @@ async function seed() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const schema = process.env.POSTGRES_SCHEMA?.trim();
+    if (schema) {
+      await client.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+    }
     await client.query(schemaSql);
     await Promise.all(
       accountInserts.map((acct) =>

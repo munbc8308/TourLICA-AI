@@ -22,7 +22,8 @@ function buildConfig(): PoolConfig {
     database: process.env.POSTGRES_DATABASE,
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
-    ssl: parseSsl()
+    ssl: parseSsl(),
+    options: parseSearchPathOption()
   };
 }
 
@@ -32,6 +33,12 @@ function parseSsl(): PoolConfig['ssl'] {
     return undefined;
   }
   return { rejectUnauthorized: false };
+}
+
+function parseSearchPathOption(): string | undefined {
+  const schema = process.env.POSTGRES_SCHEMA?.trim();
+  if (!schema) return undefined;
+  return `-c search_path=${schema}`;
 }
 
 export const pool = global.__tourlica_pg_pool__ ?? new Pool(buildConfig());
