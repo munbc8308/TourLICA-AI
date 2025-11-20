@@ -1,4 +1,5 @@
 DELETE FROM destinations;
+DELETE FROM accounts;
 
 INSERT INTO destinations (city, country, summary, best_season, highlights)
 VALUES
@@ -7,3 +8,8 @@ VALUES
 ('파리', '프랑스', '예술과 카페 문화가 넘치는 낭만 여행지', '봄', '루브르, 세느강 크루즈, 파티세리 투어'),
 ('치앙마이', '태국', '느긋한 구시가와 액티비티가 조화를 이루는 허브', '11-2월', '사원 투어, 코끼리 보호구역, 커피 농장'),
 ('시드니', '호주', '해안 액티비티와 도시 라이프를 모두 즐길 수 있는 남반구의 관문', '10-3월', '서핑 레슨, 오페라하우스, 와이너리 투어');
+
+INSERT INTO accounts (role, name, email, password) VALUES
+('tourist', 'Liam Traveler', 'traveler@tourlica.com', 'tour1234'),
+('interpreter', 'Jiyoon Choi', 'interpreter@tourlica.com', 'lingo123'),
+('helper', 'Minho Park', 'helper@tourlica.com', 'assist123');

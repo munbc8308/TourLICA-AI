@@ -49,3 +49,13 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
 Redpanda 컨테이너는 `kafkajs`에서 `localhost:19092`로 접근합니다. 필요하다면 `docker-compose.yml`에서 포트를 조정하고 `.env.local`을 맞춰 주세요. Google Maps는 `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`를 통해 클라이언트 렌더링 시 스크립트를 불러옵니다.
+
+### 샘플 계정
+
+`npm run db:setup` 실행 시 아래 계정이 자동으로 생성됩니다.
+
+| 역할 | 이메일 | 패스워드 |
+| --- | --- | --- |
+| 관광객 | traveler@tourlica.com | tour1234 |
+| 통역사 | interpreter@tourlica.com | lingo123 |
+| 도우미 | helper@tourlica.com | assist123 |

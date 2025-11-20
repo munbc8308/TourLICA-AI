@@ -223,6 +223,16 @@ main {
   cursor: pointer;
 }
 
+.login-form button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-error {
+  color: #f87171;
+  font-size: 0.9rem;
+}
+
 .login-links {
   display: flex;
   justify-content: space-between;
@@ -284,6 +294,21 @@ main {
 
 .social-btn.naver {
   color: #34d399;
+}
+
+.demo-accounts {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 16px;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.demo-accounts ul {
+  margin-top: 0.75rem;
+  padding-left: 1.1rem;
+  line-height: 1.4;
 }
 
 @media (max-width: 480px) {
