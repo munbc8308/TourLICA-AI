@@ -8,13 +8,13 @@
 - **반응형 랜딩**: TourLICA 로고 + 테마 로딩 애니메이션으로 첫인상 제공, 로딩 종료 후 로그인 화면으로 자동 이동합니다.
 - **로그인 화면**: 중앙 집중 폼(아이디/패스워드)과 회원가입·비밀번호 찾기, Google/Apple/카카오/네이버 소셜 버튼을 제공합니다.
 - **Next.js App Router 기반**: TypeScript, ESLint, `app/` 구조를 갖춘 SSR/ISR 대응 React 런타임.
-- **SQLite 연동**: `scripts/db-setup.sh`로 `data/tourlica.db`를 초기화하고, `sql.js` + `lib/db.ts`/`lib/destinations.ts`가 읽기 전용 쿼리를 제공합니다.
+- **Firebase 연동**: Firestore를 통해 계정/여행지 데이터를 관리하며, `lib/firebaseAdmin.ts`/`lib/accounts.ts`/`lib/destinations.ts`가 서버 컴포넌트에서 직접 쿼리합니다.
 - **REST API 샘플**: `app/api/destinations`는 여행지 목록 JSON을, `app/api/events`는 Kafka 토픽으로 이벤트를 발행합니다.
 
 ## 인프라 & 개발 워크플로
 - **Kafka/Redpanda 개발용 스택**: `docker-compose.yml`로 Single-node Redpanda 실행, `scripts/kafka-create-topic.sh`로 토픽 생성.
-- **환경 변수 가이드**: `.env.example`에 `KAFKA_*`와 `SQLITE_PATH`를 정의해 로컬/배포 환경을 일관되게 유지.
-- **빌드 호환성**: `next.config.mjs`에서 `sql.js` 외부 모듈화 + Google Fonts 제거로 제한된 네트워크에서도 `npm run build`가 성공.
+- **환경 변수 가이드**: `.env.example`에 Firebase 서비스 계정, Kafka, Google Maps 값을 정의해 로컬/배포 환경을 일관되게 유지.
+- **빌드 호환성**: `prebuild` 단계에서 `npm run seed:firebase`를 호출해 Firestore에 샘플 데이터 주입 후 `npm run build`가 수행됩니다.
 
 ## 위치 기반 매칭 요구사항
 - **사용자 위치 확보**: 모바일/웹에서 브라우저 geolocation 혹은 사용자 입력을 통해 현재 위치나 원하는 만남 위치를 수집해야 합니다.
@@ -28,7 +28,7 @@
 - **필터/언어 토글**: 지도 상단에 지원 언어·서비스 유형 필터를 배치해 외국인 이용자가 원하는 통역사를 빠르게 찾도록 합니다.
 
 ## 샘플 계정 전략
-- DB 시드(`npm run db:setup`)에 관광객/통역사/도우미 각 1개의 테스트 계정을 포함시키고, 로그인 성공 시 지도 화면으로 이동해 근접 매칭을 체험하도록 합니다.
+- Firestore 시드(`npm run seed:firebase`)에 관광객/통역사/도우미 계정을 포함시켜 로그인 → 지도 화면 흐름을 바로 체험할 수 있게 합니다.
 
 ## 향후 확장 아이디어
 1. **다국어 UX**: i18n 라이브러리(예: `next-intl`)를 도입해 외국인 관광객이 선호 언어로 온보딩·검색·채팅을 이용하도록 합니다.

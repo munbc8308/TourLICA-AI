@@ -1,7 +1,7 @@
-import { queryAll } from './db';
+import { getDb } from './firebaseAdmin';
 
 export interface Account {
-  id: number;
+  id: string;
   role: 'tourist' | 'interpreter' | 'helper';
   name: string;
   email: string;
@@ -9,6 +9,15 @@ export interface Account {
 }
 
 export async function findAccountByCredentials(email: string, password: string): Promise<Account | undefined> {
-  const result = await queryAll<Account>('SELECT * FROM accounts WHERE email = ? AND password = ?', [email, password]);
-  return result[0];
+  const firestore = getDb();
+  const snapshot = await firestore
+    .collection('accounts')
+    .where('email', '==', email)
+    .where('password', '==', password)
+    .limit(1)
+    .get();
+
+  const doc = snapshot.docs[0];
+  if (!doc) return undefined;
+  return { id: doc.id, ...(doc.data() as Omit<Account, 'id'>) };
 }

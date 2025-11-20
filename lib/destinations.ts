@@ -1,7 +1,7 @@
-import { queryAll } from './db';
+import { getDb } from './firebaseAdmin';
 
 export interface Destination {
-  id: number;
+  id: string;
   city: string;
   country: string;
   summary: string;
@@ -9,15 +9,8 @@ export interface Destination {
   highlights: string;
 }
 
-export async function getDestinations(limit?: number): Promise<Destination[]> {
-  const sql = `SELECT id, city, country, summary, best_season, highlights FROM destinations ORDER BY id ASC${
-    limit ? ' LIMIT ?' : ''
-  }`;
-  const params = limit ? [limit] : [];
-  return queryAll<Destination>(sql, params);
-}
-
-export async function getDestinationById(id: number): Promise<Destination | undefined> {
-  const rows = await queryAll<Destination>('SELECT * FROM destinations WHERE id = ?', [id]);
-  return rows[0];
+export async function getDestinations(): Promise<Destination[]> {
+  const firestore = getDb();
+  const snapshot = await firestore.collection('destinations').get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<Destination, 'id'>) }));
 }

@@ -1,34 +1,32 @@
 # TourLICA-AI
 
-Next.js + React 기반의 반응형 스타터 프로젝트입니다. 모바일과 웹에서 일관된 여행 추천 경험을 구축할 수 있도록 app router, TypeScript, ESLint, 기본적인 레이아웃 샘플을 제공합니다.
+Next.js + React 기반의 반응형 스타터 프로젝트입니다. 모바일과 웹에서 일관된 여행 추천 경험을 구축할 수 있도록 app router, TypeScript, Firebase, Kafka, Google Maps 샘플을 제공합니다.
 
 ## 시작하기
 
 ```bash
 npm install
-npm run dev
-# SQLite 초기화
-npm run db:setup
+cp .env.example .env.local  # Firebase/Kafka/Maps 설정 입력
+npm run seed:firebase       # Firebase에 샘플 데이터 업로드
+npm run dev                 # http://localhost:3000
 # Kafka (Redpanda) 로컬 서버 기동
 docker compose up -d redpanda
 # 토픽 생성 (필요 시)
 ./scripts/kafka-create-topic.sh
-# Google Maps API는 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 환경 변수 활용
 ```
 
-- `npm run dev`: 개발 모드 (http://localhost:3000)
-- `npm run build`: 프로덕션 번들 생성
+- `npm run dev`: 개발 모드
+- `npm run build`: 프로덕션 번들 생성 (`prebuild` 단계에서 자동으로 `npm run seed:firebase` 실행)
 - `npm run start`: 빌드 산출물을 실행
 - `npm run lint`: ESLint 검증
-- `npm run db:setup`: SQLite 스키마/시드 구성 (`data/tourlica.db`)
+- `npm run seed:firebase`: Firebase Firestore에 샘플 계정/도시 데이터 업로드
 - `docker compose up -d redpanda`: Kafka 호환 Redpanda 브로커 실행
 - `./scripts/kafka-create-topic.sh <topic>`: 기본 토픽(`tourlica-events`) 생성
-- `npm run build` 실행 시 `prebuild` 훅을 통해 자동으로 `npm run db:setup`이 호출되어 샘플 계정/데이터가 초기화됩니다.
 
 ## 디렉터리
 
 - `app/` – Next.js app router 페이지, 글로벌 스타일, 재사용 컴포넌트
-- `app/api/destinations` – SQLite 데이터 노출용 API 라우트
+- `app/api/destinations` – Firebase Firestore에서 여행지 데이터를 읽어오는 API 라우트
 - `app/api/events` – Kafka 이벤트 발행용 API 라우트 예시
 - `app/map/` – Google Maps 기반 지도 UI 샘플
 - `public/` – 파비콘 및 정적 자산
@@ -36,24 +34,29 @@ docker compose up -d redpanda
 - `data/sql/` – 스키마와 기본 시드 SQL 스크립트
 - `configs/`, `scripts/` 등은 필요 시 추가하세요. 구조화 지침은 `AGENTS.md` 참고
 
-Next.js 서버 컴포넌트와 API 라우트는 `sql.js`를 이용해 `data/tourlica.db` 파일을 메모리로 로드합니다. 다른 경로를 쓰고 싶다면 `SQLITE_PATH` 환경 변수를 지정하세요. 필요한 패키지를 추가한 뒤, 반응형 컴포넌트나 API 라우트를 `app/api/` 하위에 구성하면 됩니다.
+Next.js 서버 컴포넌트와 API 라우트는 Firebase Admin SDK를 이용해 Firestore 데이터를 읽습니다. `.env.local`에 Firebase 서비스 계정 정보를 입력해야 하며, `npm run seed:firebase` 명령으로 샘플 데이터(계정, 여행지)를 Firestore에 채워둘 수 있습니다.
 
-### Kafka 환경 변수
+### 환경 변수
 
-`.env.example`를 참고해 `.env.local`을 만들고 아래 값을 조정하세요.
+`.env.example`를 참고해 `.env.local`을 만들고 값을 채웁니다.
 
 ```
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=service-account@example.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 KAFKA_CLIENT_ID=tourlica-web
 KAFKA_BROKERS=localhost:19092
 KAFKA_TOPIC=tourlica-events
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
-Redpanda 컨테이너는 `kafkajs`에서 `localhost:19092`로 접근합니다. 필요하다면 `docker-compose.yml`에서 포트를 조정하고 `.env.local`을 맞춰 주세요. Google Maps는 `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`를 통해 클라이언트 렌더링 시 스크립트를 불러옵니다.
+- Firebase: 콘솔에서 서비스 계정을 생성하고 위 값으로 복사합니다. `FIREBASE_PRIVATE_KEY`는 개행을 `\n`으로 치환해 문자열로 입력하세요.
+- Kafka: Redpanda 컨테이너가 `localhost:19092`에서 실행되도록 설정했습니다.
+- Google Maps: JavaScript API 키를 입력하세요.
 
 ### 샘플 계정
 
-`npm run db:setup` 실행 시 아래 계정이 자동으로 생성됩니다.
+`npm run seed:firebase` 실행 시 아래 계정이 Firestore에 저장됩니다.
 
 | 역할 | 이메일 | 패스워드 |
 | --- | --- | --- |
