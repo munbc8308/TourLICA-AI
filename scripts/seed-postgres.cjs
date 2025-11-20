@@ -24,11 +24,19 @@ function buildConfig() {
     database: process.env.POSTGRES_DATABASE,
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
-    ssl: { rejectUnauthorized: false }
+    ssl: parseSsl()
   };
 }
 
 const pool = new Pool(buildConfig());
+
+function parseSsl() {
+  const value = process.env.POSTGRES_SSL?.toLowerCase();
+  if (!value || value === 'false' || value === '0' || value === 'off') {
+    return undefined;
+  }
+  return { rejectUnauthorized: false };
+}
 
 const schemaSql = `
 CREATE TABLE IF NOT EXISTS accounts (

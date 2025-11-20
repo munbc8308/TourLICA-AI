@@ -22,8 +22,16 @@ function buildConfig(): PoolConfig {
     database: process.env.POSTGRES_DATABASE,
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
-    ssl: { rejectUnauthorized: false }
+    ssl: parseSsl()
   };
+}
+
+function parseSsl(): PoolConfig['ssl'] {
+  const value = process.env.POSTGRES_SSL?.toLowerCase();
+  if (!value || value === 'false' || value === '0' || value === 'off') {
+    return undefined;
+  }
+  return { rejectUnauthorized: false };
 }
 
 export const pool = global.__tourlica_pg_pool__ ?? new Pool(buildConfig());
