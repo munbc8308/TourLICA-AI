@@ -18,7 +18,7 @@ function buildConfig() {
     process.exit(0);
   }
 
-  const config = {
+  return {
     host: process.env.POSTGRES_HOST,
     port: Number(process.env.POSTGRES_PORT),
     database: process.env.POSTGRES_DATABASE,
@@ -26,13 +26,6 @@ function buildConfig() {
     password: process.env.POSTGRES_PASSWORD,
     ssl: parseSsl()
   };
-
-  const schema = process.env.POSTGRES_SCHEMA?.trim();
-  if (schema) {
-    config.options = `-c search_path=${schema}`;
-  }
-
-  return config;
 }
 
 const pool = new Pool(buildConfig());
@@ -45,8 +38,9 @@ function parseSsl() {
   return { rejectUnauthorized: false };
 }
 
-const schemaSql = `
-CREATE TABLE IF NOT EXISTS accounts (
+function getSchemaSql(schema) {
+  return `
+CREATE TABLE IF NOT EXISTS "${schema}".accounts (
   id SERIAL PRIMARY KEY,
   role TEXT NOT NULL CHECK (role IN ('tourist', 'interpreter', 'helper')),
   name TEXT NOT NULL,
@@ -54,7 +48,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   password TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS destinations (
+CREATE TABLE IF NOT EXISTS "${schema}".destinations (
   id SERIAL PRIMARY KEY,
   city TEXT NOT NULL,
   country TEXT NOT NULL,
@@ -64,6 +58,7 @@ CREATE TABLE IF NOT EXISTS destinations (
   CONSTRAINT destinations_city_country UNIQUE (city, country)
 );
 `;
+}
 
 const accountInserts = [
   { role: 'tourist', name: 'Liam Traveler', email: 'traveler@tourlica.com', password: 'tour1234' },
@@ -81,11 +76,21 @@ async function seed() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const schema = process.env.POSTGRES_SCHEMA?.trim();
-    if (schema) {
-      await client.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
-      await client.query(`SET search_path TO ${schema}`);
+
+    // Set search_path to ensure we're working in the correct schema
+    const schema = process.env.POSTGRES_SCHEMA?.trim() || 'public';
+    console.log(`Using schema: ${schema}`);
+
+    // Only create schema if it's not 'public'
+    if (schema.toLowerCase() !== 'public') {
+      await client.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
     }
+
+    // Always set search_path explicitly
+    await client.query(`SET search_path TO "${schema}"`);
+
+    // Create tables with explicit schema qualification
+    const schemaSql = getSchemaSql(schema);
     await client.query(schemaSql);
     await Promise.all(
       accountInserts.map((acct) =>

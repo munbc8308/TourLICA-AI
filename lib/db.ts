@@ -38,7 +38,7 @@ function parseSsl(): PoolConfig['ssl'] {
 function parseSearchPathOption(): string | undefined {
   const schema = process.env.POSTGRES_SCHEMA?.trim();
   if (!schema) return undefined;
-  return `-c search_path=${schema}`;
+  return `-c search_path="${schema}"`;
 }
 
 export const pool = global.__tourlica_pg_pool__ ?? new Pool(buildConfig());
@@ -63,6 +63,6 @@ async function ensureSearchPath(client: any) {
   if (!schema || client.__tourlica_schema_set__) {
     return;
   }
-  await client.query(`SET search_path TO ${schema}`);
+  await client.query(`SET search_path TO "${schema}"`);
   client.__tourlica_schema_set__ = true;
 }
