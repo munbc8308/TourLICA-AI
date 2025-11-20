@@ -1,6 +1,20 @@
+'use client';
+
 import Image from 'next/image';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace('/login');
+    }, 3200);
+
+    return () => clearTimeout(timer);
+  }, [router]);
+
   return (
     <main className="landing">
       <div className="landing-inner">
