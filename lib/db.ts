@@ -50,9 +50,19 @@ if (!global.__tourlica_pg_pool__) {
 export async function query<T = unknown>(text: string, params: unknown[] = []): Promise<T[]> {
   const client = await pool.connect();
   try {
+    await ensureSearchPath(client);
     const result = await client.query<T>(text, params);
     return result.rows;
   } finally {
     client.release();
   }
+}
+
+async function ensureSearchPath(client: any) {
+  const schema = process.env.POSTGRES_SCHEMA?.trim();
+  if (!schema || client.__tourlica_schema_set__) {
+    return;
+  }
+  await client.query(`SET search_path TO ${schema}`);
+  client.__tourlica_schema_set__ = true;
 }

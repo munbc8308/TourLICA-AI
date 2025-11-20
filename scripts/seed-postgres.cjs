@@ -84,6 +84,7 @@ async function seed() {
     const schema = process.env.POSTGRES_SCHEMA?.trim();
     if (schema) {
       await client.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
+      await client.query(`SET search_path TO ${schema}`);
     }
     await client.query(schemaSql);
     await Promise.all(
