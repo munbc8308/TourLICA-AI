@@ -5,11 +5,6 @@ out
 .vercel
 .turbo
 
-# Env files
-.env
-.env.local
-.env*.local
-
 # Logs
 *.log
 npm-debug.log*
