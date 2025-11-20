@@ -23,6 +23,7 @@ docker compose up -d redpanda
 - `npm run db:setup`: SQLite 스키마/시드 구성 (`data/tourlica.db`)
 - `docker compose up -d redpanda`: Kafka 호환 Redpanda 브로커 실행
 - `./scripts/kafka-create-topic.sh <topic>`: 기본 토픽(`tourlica-events`) 생성
+- `npm run build` 실행 시 `prebuild` 훅을 통해 자동으로 `npm run db:setup`이 호출되어 샘플 계정/데이터가 초기화됩니다.
 
 ## 디렉터리
 
