@@ -1,5 +1,10 @@
 #!/usr/bin/env node
+const path = require('node:path');
+const { config } = require('dotenv');
 const { Pool } = require('pg');
+
+config({ path: path.resolve(process.cwd(), '.env') });
+config({ path: path.resolve(process.cwd(), '.env.local'), override: true });
 
 function buildConfig() {
   if (process.env.POSTGRES_URL && process.env.POSTGRES_URL.trim().length > 0) {
