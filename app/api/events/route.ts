@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getKafkaProducer } from '@/lib/kafka';
 
+export const dynamic = 'force-dynamic';
+
 const topic = process.env.KAFKA_TOPIC ?? 'tourlica-events';
 
 export async function POST(request: Request) {

@@ -1,4 +1,4 @@
-import { Pool, PoolConfig } from 'pg';
+import { Pool, PoolConfig, QueryResultRow } from 'pg';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -47,7 +47,7 @@ if (!global.__tourlica_pg_pool__) {
   global.__tourlica_pg_pool__ = pool;
 }
 
-export async function query<T = unknown>(text: string, params: unknown[] = []): Promise<T[]> {
+export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []): Promise<T[]> {
   const client = await pool.connect();
   try {
     await ensureSearchPath(client);

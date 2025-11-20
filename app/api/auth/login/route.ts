@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { findAccountByCredentials } from '@/lib/accounts';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   const { email, password } = await request.json();
 
