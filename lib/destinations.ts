@@ -1,8 +1,7 @@
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from './firebaseClient';
+import { query } from './db';
 
 export interface Destination {
-  id: string;
+  id: number;
   city: string;
   country: string;
   summary: string;
@@ -11,6 +10,7 @@ export interface Destination {
 }
 
 export async function getDestinations(): Promise<Destination[]> {
-  const snapshot = await getDocs(collection(db, 'destinations'));
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<Destination, 'id'>) }));
+  return query<Destination>(
+    'SELECT id, city, country, summary, best_season, highlights FROM destinations ORDER BY id LIMIT 3'
+  );
 }

@@ -1,8 +1,7 @@
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
-import { db } from './firebaseClient';
+import { query } from './db';
 
 export interface Account {
-  id: string;
+  id: number;
   role: 'tourist' | 'interpreter' | 'helper';
   name: string;
   email: string;
@@ -10,15 +9,10 @@ export interface Account {
 }
 
 export async function findAccountByCredentials(email: string, password: string): Promise<Account | undefined> {
-  const q = query(
-    collection(db, 'accounts'),
-    where('email', '==', email),
-    where('password', '==', password),
-    limit(1)
+  const rows = await query<Account>(
+    'SELECT id, role, name, email, password FROM accounts WHERE email = $1 AND password = $2 LIMIT 1',
+    [email, password]
   );
 
-  const snapshot = await getDocs(q);
-  const doc = snapshot.docs[0];
-  if (!doc) return undefined;
-  return { id: doc.id, ...(doc.data() as Omit<Account, 'id'>) };
+  return rows[0];
 }

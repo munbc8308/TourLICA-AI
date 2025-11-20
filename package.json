@@ -3,18 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "npm run seed:firebase",
+    "prebuild": "npm run seed:postgres",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:firebase": "node scripts/seed-firebase.cjs"
+    "seed:postgres": "node scripts/seed-postgres.cjs"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.7",
-    "firebase": "^12.6.0",
     "kafkajs": "2.2.4",
     "next": "14.2.3",
+    "pg": "^8.16.3",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
