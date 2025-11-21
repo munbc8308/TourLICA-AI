@@ -73,3 +73,16 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 | 관리자 | admin@tourlica.com | control123 |
 
 시드 스크립트는 역할별 가입 필드를 반영한 `accounts` 테이블 외에, 관광객 요청 대기열(`match_requests`)과 매칭 히스토리(`match_assignments`)까지 자동 생성·업데이트합니다. 통역사/도우미 맵 화면은 해당 테이블 기반 API를 폴링해 Kafka 이벤트와 동일한 흐름을 모의합니다.
+
+### Confluent Cloud 연동 테스트
+
+`ccloud-nodejs-client/` 폴더 안에 있는 스크립트는 Confluent Cloud 토픽(`client.properties` 참고)에 매칭 요청을 게시하거나, 역할별로 구독하는 Node.js 예제입니다.
+
+```bash
+cd ccloud-nodejs-client
+npm install @confluentinc/kafka-javascript
+node index.js publish interpreter   # 관광객 → 통역사 호출
+node index.js consume helper        # 도우미 대기열 구독
+```
+
+publish 모드는 임의의 위치/반경을 포함한 JSON payload를 전송하고, consume 모드는 지정한 역할에 해당하는 메시지만 필터링하여 콘솔에 출력합니다.

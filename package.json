@@ -10,6 +10,7 @@
     "seed:postgres": "node scripts/seed-postgres.cjs"
   },
   "dependencies": {
+    "@confluentinc/kafka-javascript": "^1.6.0",
     "@react-google-maps/api": "^2.20.7",
     "dotenv": "^17.2.3",
     "kafkajs": "2.2.4",
