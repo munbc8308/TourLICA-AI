@@ -64,6 +64,36 @@ CREATE TABLE IF NOT EXISTS "${schema}".destinations (
   highlights TEXT NOT NULL,
   CONSTRAINT destinations_city_country UNIQUE (city, country)
 );
+
+CREATE TABLE IF NOT EXISTS "${schema}".match_requests (
+  id SERIAL PRIMARY KEY,
+  requester_account_id INTEGER REFERENCES "${schema}".accounts(id) ON DELETE SET NULL,
+  requester_name TEXT,
+  requester_role TEXT NOT NULL CHECK (requester_role IN ('tourist')),
+  target_role TEXT NOT NULL CHECK (target_role IN ('interpreter', 'helper')),
+  latitude DOUBLE PRECISION NOT NULL,
+  longitude DOUBLE PRECISION NOT NULL,
+  radius_km INTEGER,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'cancelled', 'matched')) DEFAULT 'pending',
+  device TEXT,
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS match_requests_target_role_idx
+  ON "${schema}".match_requests (target_role, status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS "${schema}".match_assignments (
+  id SERIAL PRIMARY KEY,
+  request_id INTEGER REFERENCES "${schema}".match_requests(id) ON DELETE SET NULL,
+  tourist_account_id INTEGER REFERENCES "${schema}".accounts(id) ON DELETE SET NULL,
+  responder_account_id INTEGER REFERENCES "${schema}".accounts(id) ON DELETE SET NULL,
+  responder_role TEXT NOT NULL CHECK (responder_role IN ('interpreter', 'helper')),
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  matched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 }
 

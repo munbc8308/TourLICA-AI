@@ -28,10 +28,12 @@ docker compose up -d redpanda
 - `app/` – Next.js app router 페이지, 글로벌 스타일, 재사용 컴포넌트
 - `app/api/destinations` – PostgreSQL에서 여행지 데이터를 읽어오는 API 라우트
 - `app/api/events` – Kafka 이벤트 발행용 API 라우트 예시
+- `app/api/match/requests` – 통역사/도우미가 수신 대기 중인 매칭 요청을 폴링하는 API
+- `app/api/match/accept` – 매칭 요청을 수락하고 매칭 기록을 저장하는 API
 - `app/signup/` – 역할별 회원가입 선택 화면과 세부 폼
 - `app/map/` – Google Maps 기반 지도 UI 샘플
 - `public/` – 파비콘 및 정적 자산
-- `lib/` – PostgreSQL 클라이언트(`lib/db.ts`)와 쿼리 함수
+- `lib/` – PostgreSQL 클라이언트(`lib/db.ts`), 계정/매칭 헬퍼(`lib/accounts.ts`, `lib/match-requests.ts`)
 - `configs/`, `scripts/` 등은 필요 시 추가하세요. 구조화 지침은 `AGENTS.md` 참고
 
 Next.js 서버 컴포넌트와 API 라우트는 `pg`를 이용해 PostgreSQL 데이터를 읽습니다. `.env.local`에 `POSTGRES_URL`을 정의하고 `npm run seed:postgres` 명령으로 샘플 데이터(계정, 여행지)를 DB에 채워둘 수 있습니다.
@@ -69,3 +71,5 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 | 통역사 | interpreter@tourlica.com | lingo123 |
 | 도우미 | helper@tourlica.com | assist123 |
 | 관리자 | admin@tourlica.com | control123 |
+
+시드 스크립트는 역할별 가입 필드를 반영한 `accounts` 테이블 외에, 관광객 요청 대기열(`match_requests`)과 매칭 히스토리(`match_assignments`)까지 자동 생성·업데이트합니다. 통역사/도우미 맵 화면은 해당 테이블 기반 API를 폴링해 Kafka 이벤트와 동일한 흐름을 모의합니다.

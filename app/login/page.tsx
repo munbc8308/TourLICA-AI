@@ -44,9 +44,18 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const { error: message } = await response.json();
-        throw new Error(message ?? '로그인에 실패했습니다.');
+        throw new Error(data?.error ?? '로그인에 실패했습니다.');
+      }
+
+      if (!data?.account) {
+        throw new Error('계정 정보를 가져오지 못했습니다.');
+      }
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('tourlica.account', JSON.stringify(data.account));
       }
 
       router.push('/map');
