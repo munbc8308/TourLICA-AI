@@ -22,6 +22,7 @@ interface PendingRequest {
   radiusKm: number | null;
   createdAt: string;
   device: string | null;
+  targetRole: MatchRole;
 }
 
 const defaultCenter = { lat: 37.5665, lng: 126.978 }; // Seoul City Hall
@@ -142,6 +143,56 @@ export default function MapPage() {
       setCurrentRequestId(null);
     }
   }, [isTourist]);
+
+  useEffect(() => {
+    if (!isTourist || !account?.id) {
+      if (!isTourist) {
+        setCurrentRequestId(null);
+        setMatchRole(null);
+        setMatchStage('idle');
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchPendingRequest() {
+      try {
+        const response = await fetch('/api/match/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accountId: account.id })
+        });
+
+        if (!response.ok) {
+          throw new Error('pending request fetch failed');
+        }
+
+        const data = await response.json();
+        if (cancelled) return;
+
+        const request = data?.request as (PendingRequest | null);
+        if (request) {
+          setCurrentRequestId(request.id);
+          setMatchRole(request.targetRole);
+          setMatchStage('waiting');
+          setMatchError(null);
+          setCenter({ lat: request.latitude, lng: request.longitude });
+        } else {
+          setCurrentRequestId(null);
+          setMatchRole(null);
+          setMatchStage((prev) => (prev === 'waiting' ? 'idle' : prev));
+        }
+      } catch (error) {
+        console.warn('Failed to load pending match request', error);
+      }
+    }
+
+    fetchPendingRequest();
+    return () => {
+      cancelled = true;
+    };
+  }, [isTourist, account?.id]);
 
   const statusMessage = useMemo(() => {
     if (matchStage === 'waiting' && matchRole) {

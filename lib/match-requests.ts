@@ -116,6 +116,37 @@ export async function getPendingMatchRequests(targetRole: MatchRole): Promise<Ma
   return rows.map(coerceMatchRequest);
 }
 
+export async function findPendingRequestByAccount(accountId: number): Promise<MatchRequest | undefined> {
+  const rows = await query<MatchRequest>(
+    `SELECT
+      id,
+      requester_account_id AS "requesterAccountId",
+      requester_name AS "requesterName",
+      requester_role AS "requesterRole",
+      target_role AS "targetRole",
+      latitude,
+      longitude,
+      radius_km AS "radiusKm",
+      status,
+      device,
+      note,
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    FROM match_requests
+    WHERE requester_account_id = $1
+      AND status = 'pending'
+    ORDER BY created_at DESC
+    LIMIT 1`,
+    [accountId]
+  );
+
+  if (!rows[0]) {
+    return undefined;
+  }
+
+  return coerceMatchRequest(rows[0]);
+}
+
 export async function markMatchRequestMatched(args: {
   requestId: number;
   responderAccountId: number;
