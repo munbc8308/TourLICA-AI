@@ -65,6 +65,7 @@ export default function MapPage() {
 
   const [account, setAccount] = useState<AccountProfile | null>(null);
   const [center, setCenter] = useState(defaultCenter);
+  const [mapZoom, setMapZoom] = useState(15);
   const [selfLocation, setSelfLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [matchStage, setMatchStage] = useState<MatchStage>('idle');
@@ -91,6 +92,7 @@ export default function MapPage() {
         activeAssignment.meetingStatus === 'awaiting_confirmation' &&
         activeAssignment.meetingStatusUpdatedAt !== meetingPromptDismissedVersion
     );
+  const userMarkerPosition = selfLocation ?? (!serviceRole ? center : null);
 
   useEffect(() => {
     if (!activeAssignment || activeAssignment.meetingStatus !== 'awaiting_confirmation') {
@@ -121,6 +123,7 @@ export default function MapPage() {
         setCenter(location);
         setSelfLocation(location);
         setLocationError(null);
+        setMapZoom(15);
       },
       () => {
         setLocationError('현재 위치를 가져올 수 없어 기본 위치(서울 시청)를 표시합니다.');
@@ -177,6 +180,7 @@ export default function MapPage() {
       const next = pendingRequests[0];
       setActiveRequestId(next.id);
       setCenter({ lat: next.latitude, lng: next.longitude });
+      setMapZoom(15);
     }
   }, [pendingRequests, serviceRole, activeAssignment, activeRequestId]);
 
@@ -212,6 +216,7 @@ export default function MapPage() {
     if (assignment) {
       if (assignment.latitude && assignment.longitude) {
         setCenter({ lat: assignment.latitude, lng: assignment.longitude });
+        setMapZoom(15);
       }
       if (isTourist) {
         setMatchStage('matched');
@@ -802,13 +807,10 @@ export default function MapPage() {
               <GoogleMap
                 mapContainerStyle={containerStyle}
                 center={center}
-                zoom={13}
+                zoom={mapZoom}
                 options={{ disableDefaultUI: true, zoomControl: true }}
               >
-                {!serviceRole && <Marker position={center} title="현재 위치" />}
-                {selfLocation && serviceRole && (
-                  <Marker position={selfLocation} title="내 위치" label="나" />
-                )}
+                {userMarkerPosition && <Marker position={userMarkerPosition} title="내 위치" label="나" />}
                 {activeAssignment && activeAssignment.latitude && activeAssignment.longitude && (
                   <Marker
                     position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
