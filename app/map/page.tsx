@@ -145,7 +145,8 @@ export default function MapPage() {
   }, [isTourist]);
 
   useEffect(() => {
-    if (!isTourist || !account?.id) {
+    const accountId = account?.id;
+    if (!isTourist || !accountId) {
       if (!isTourist) {
         setCurrentRequestId(null);
         setMatchRole(null);
@@ -161,7 +162,7 @@ export default function MapPage() {
         const response = await fetch('/api/match/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accountId: account.id })
+          body: JSON.stringify({ accountId })
         });
 
         if (!response.ok) {
