@@ -125,7 +125,7 @@ export default function MapPage() {
   }, [isLoaded]);
 
   useEffect(() => {
-    if (!serviceRole) {
+    if (!serviceRole || activeAssignment) {
       setPendingRequests([]);
       setActiveRequestId(null);
       return;
@@ -159,10 +159,10 @@ export default function MapPage() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [serviceRole, refreshSignal]);
+  }, [serviceRole, refreshSignal, activeAssignment]);
 
   useEffect(() => {
-    if (!serviceRole || pendingRequests.length === 0) {
+    if (!serviceRole || activeAssignment || pendingRequests.length === 0) {
       if (pendingRequests.length === 0) {
         setActiveRequestId(null);
       }
@@ -174,7 +174,7 @@ export default function MapPage() {
       setActiveRequestId(next.id);
       setCenter({ lat: next.latitude, lng: next.longitude });
     }
-  }, [pendingRequests, serviceRole, activeRequestId]);
+  }, [pendingRequests, serviceRole, activeAssignment, activeRequestId]);
 
   useEffect(() => {
     if (!isTourist) {
@@ -652,28 +652,25 @@ export default function MapPage() {
       const responderName = activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole];
       return (
         <>
-          <p>
-            {responderName} 님이 이동 중입니다. 위치가 갱신되면 지도에 경로가 표시됩니다.
-          </p>
-          {shouldShowMeetingPrompt ? (
+          <p>{responderName} 님 위치를 따라 이동 중입니다.</p>
+          {shouldShowMeetingPrompt && (
             <div className="meeting-prompt">
-              <p>{responderName} 님이 도착했다고 알려왔습니다. 만남을 확인해 주세요.</p>
+              <p>현장에서 만남이 완료되었나요?</p>
               <div className="match-actions">
                 <button type="button" onClick={handleMeetingConfirm}>
-                  확인
+                  만남 확인
                 </button>
                 <button type="button" className="outline" onClick={handleMeetingPromptDismiss}>
-                  취소
+                  닫기
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="match-actions">
-              <button type="button" onClick={() => fetchAssignmentSnapshot()}>
-                경로 새로고침
-              </button>
-            </div>
           )}
+          <div className="match-actions">
+            <button type="button" onClick={() => fetchAssignmentSnapshot()}>
+              경로 새로고침
+            </button>
+          </div>
         </>
       );
     }
@@ -709,9 +706,9 @@ export default function MapPage() {
             {activeAssignment.meetingStatus === 'completed' && <p className="match-status">만남이 완료되었습니다.</p>}
           </div>
           <div className="match-actions">
-            {activeAssignment.meetingStatus !== 'completed' && (
+            {activeAssignment.meetingStatus !== 'completed' && !shouldShowMeetingPrompt && (
               <button type="button" onClick={handleMeetingArrival} disabled={accepting}>
-                만남 요청
+                만남 확인 요청
               </button>
             )}
             <button type="button" className="outline" onClick={() => fetchAssignmentSnapshot()} disabled={accepting}>
