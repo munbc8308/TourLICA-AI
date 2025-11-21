@@ -49,7 +49,9 @@ function parseKafkaSasl(): SASLOptions | undefined {
   return buildSaslOptions(mechanism, username, password);
 }
 
-function parseMechanism(value?: string): SASLOptions['mechanism'] | undefined {
+type SupportedMechanism = 'plain' | 'scram-sha-256' | 'scram-sha-512' | 'aws' | 'oauthbearer';
+
+function parseMechanism(value?: string): SupportedMechanism | undefined {
   if (!value) return undefined;
   if (value === 'plain' || value === 'scram-sha-256' || value === 'scram-sha-512' || value === 'aws' || value === 'oauthbearer') {
     return value;
@@ -57,14 +59,18 @@ function parseMechanism(value?: string): SASLOptions['mechanism'] | undefined {
   return undefined;
 }
 
-function buildSaslOptions(mechanism: NonNullable<SASLOptions['mechanism']>, username: string, password: string): SASLOptions {
+function buildSaslOptions(mechanism: SupportedMechanism, username: string, password: string): SASLOptions {
   switch (mechanism) {
     case 'plain':
+      return { mechanism: 'plain', username, password };
     case 'scram-sha-256':
+      return { mechanism: 'scram-sha-256', username, password };
     case 'scram-sha-512':
+      return { mechanism: 'scram-sha-512', username, password };
     case 'aws':
+      return { mechanism: 'aws', username, password };
     case 'oauthbearer':
-      return { mechanism, username, password };
+      return { mechanism: 'oauthbearer', username, password };
     default:
       return { mechanism: 'plain', username, password };
   }
