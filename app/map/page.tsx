@@ -1,7 +1,7 @@
 'use client';
 
 import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type MatchRole = 'interpreter' | 'helper';
 type MatchStage = 'idle' | 'selecting' | 'sending' | 'waiting' | 'matched';
@@ -81,6 +81,8 @@ export default function MapPage() {
   const [activeAssignment, setActiveAssignment] = useState<MatchAssignment | null>(null);
   const [movementPath, setMovementPath] = useState<MovementPoint[]>([]);
   const [meetingPromptDismissedVersion, setMeetingPromptDismissedVersion] = useState<string | null>(null);
+  const userLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const centerInitializedRef = useRef(false);
 
   const serviceRole = isServiceRole(account?.role) ? (account?.role as MatchRole) : null;
   const isTourist = !account || account.role === 'tourist';
@@ -127,22 +129,30 @@ export default function MapPage() {
     }
   }, []);
 
-
   useEffect(() => {
-    if (!isLoaded || !navigator.geolocation) return;
+    if (!isLoaded || typeof navigator === 'undefined' || !navigator.geolocation) return;
 
-    navigator.geolocation.getCurrentPosition(
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCenter(location);
         setSelfLocation(location);
+        userLocationRef.current = location;
         setLocationError(null);
-        setMapZoom(15);
+        if (!centerInitializedRef.current) {
+          setCenter(location);
+          setMapZoom(15);
+          centerInitializedRef.current = true;
+        }
       },
       () => {
         setLocationError('현재 위치를 가져올 수 없어 기본 위치(서울 시청)를 표시합니다.');
-      }
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, [isLoaded]);
 
   useEffect(() => {
@@ -463,9 +473,7 @@ export default function MapPage() {
       return;
     }
 
-    const trackingRole: 'tourist' | 'interpreter' | 'helper' | null = serviceRole ? serviceRole : null;
-
-    if (!trackingRole || typeof navigator === 'undefined' || !navigator.geolocation) {
+    if (!serviceRole) {
       return;
     }
 
@@ -473,22 +481,37 @@ export default function MapPage() {
 
     const sendPosition = () => {
       if (cancelled) return;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setSelfLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          fetch('/api/match/movements', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              assignmentId,
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude
-            })
-          }).catch(() => {});
-        },
-        () => {},
-        { maximumAge: 0, enableHighAccuracy: true }
-      );
+      const coords = userLocationRef.current;
+      if (coords) {
+        fetch('/api/match/movements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assignmentId,
+            latitude: coords.lat,
+            longitude: coords.lng
+          })
+        }).catch(() => {});
+      } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            userLocationRef.current = location;
+            setSelfLocation(location);
+            fetch('/api/match/movements', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                assignmentId,
+                latitude: location.lat,
+                longitude: location.lng
+              })
+            }).catch(() => {});
+          },
+          () => {},
+          { maximumAge: 0, enableHighAccuracy: true }
+        );
+      }
     };
 
     sendPosition();
