@@ -1,4 +1,8 @@
+import 'server-only';
 import { Kafka, type KafkaConfig, type SASLOptions } from 'kafkajs';
+import { ensureEnvLoaded } from './load-env';
+
+ensureEnvLoaded();
 
 const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:19092')
   .split(',')

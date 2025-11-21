@@ -62,7 +62,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
 - PostgreSQL: `POSTGRES_URL`을 비워두면 호스트/포트/DB/사용자/비밀번호 조합으로 접속합니다. SSL 지원이 필요 없으면 `POSTGRES_SSL=false`, 특정 스키마를 사용한다면 `POSTGRES_SCHEMA`를 지정하세요.
-- Kafka: 로컬 Redpanda는 `localhost:19092`로 접속하면 되고, Confluent Cloud를 사용할 때는 `KAFKA_BROKERS`, `KAFKA_SSL=true`, `KAFKA_SASL_*`(mechanism/username/password)를 설정하세요.
+- Kafka: 로컬 Redpanda는 `localhost:19092`로 접속하면 되고, Confluent Cloud를 사용할 때는 `KAFKA_BROKERS`, `KAFKA_SSL=true`, `KAFKA_SASL_*`(mechanism/username/password)를 설정하세요. 서버 런타임은 `.env`, `.env.local`, `.env.production` 값을 자동으로 로드하므로 원하는 파일에 입력하면 됩니다.
 - Google Maps: JavaScript API 키를 입력하세요.
 
 ### 샘플 계정
