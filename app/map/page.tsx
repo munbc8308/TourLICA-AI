@@ -14,6 +14,14 @@ interface AccountProfile {
   email: string;
 }
 
+interface AccountDetails extends AccountProfile {
+  nickname: string | null;
+  phone: string | null;
+  gender: string | null;
+  country: string | null;
+  deviceFingerprint: string | null;
+}
+
 interface PendingRequest {
   id: number;
   requesterName: string | null;
@@ -83,6 +91,9 @@ export default function MapPage() {
   const [meetingPromptDismissedVersion, setMeetingPromptDismissedVersion] = useState<string | null>(null);
   const userLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const centerInitializedRef = useRef(false);
+  const [profileInfo, setProfileInfo] = useState<AccountDetails | null>(null);
+  const [matchHistory, setMatchHistory] = useState<MatchAssignment[]>([]);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   const serviceRole = isServiceRole(account?.role) ? (account?.role as MatchRole) : null;
   const isTourist = !account || account.role === 'tourist';
@@ -172,6 +183,43 @@ export default function MapPage() {
       navigator.geolocation.clearWatch(watchId);
     };
   }, [isLoaded]);
+
+  useEffect(() => {
+    if (!account?.id) {
+      setProfileInfo(null);
+      setMatchHistory([]);
+      return;
+    }
+
+    setDrawerLoading(true);
+
+    const fetchProfile = fetch('/api/account/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: account.id })
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.account) {
+          setProfileInfo(data.account);
+        }
+      })
+      .catch(() => {});
+
+    const perspective = serviceRole ? 'responder' : 'tourist';
+    const fetchHistory = fetch('/api/match/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: account.id, perspective, limit: 10 })
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setMatchHistory(data?.history ?? []);
+      })
+      .catch(() => setMatchHistory([]));
+
+    Promise.all([fetchProfile, fetchHistory]).finally(() => setDrawerLoading(false));
+  }, [account?.id, serviceRole]);
 
   useEffect(() => {
     if (!serviceRole || activeAssignment) {
@@ -854,10 +902,51 @@ export default function MapPage() {
             ✕
           </button>
         </div>
+        <div className="drawer-section">
+          <h3>내 정보</h3>
+          {drawerLoading && !profileInfo ? (
+            <p className="match-status">불러오는 중...</p>
+          ) : profileInfo ? (
+            <ul>
+              <li>이름: {profileInfo.name}</li>
+              <li>이메일: {profileInfo.email}</li>
+              {profileInfo.nickname && <li>닉네임: {profileInfo.nickname}</li>}
+              {profileInfo.phone && <li>연락처: {profileInfo.phone}</li>}
+              {profileInfo.country && <li>국가: {profileInfo.country}</li>}
+              {profileInfo.gender && <li>성별: {profileInfo.gender}</li>}
+            </ul>
+          ) : (
+            <p className="match-status">정보가 없습니다.</p>
+          )}
+        </div>
+        <div className="drawer-section">
+          <h3>매칭 히스토리</h3>
+          {drawerLoading && matchHistory.length === 0 ? (
+            <p className="match-status">불러오는 중...</p>
+          ) : matchHistory.length === 0 ? (
+            <p className="match-status">기록이 없습니다.</p>
+          ) : (
+            <ul className="history-list">
+              {matchHistory.map((history) => {
+                const counterpart = serviceRole ? history.touristName ?? '관광객' : history.responderName ?? '전문가';
+                return (
+                  <li key={history.id}>
+                    <strong>{counterpart}</strong>
+                    <span>{new Date(history.matchedAt).toLocaleString()}</span>
+                    {history.latitude && history.longitude && (
+                      <span>
+                        위치: {history.latitude.toFixed(3)}, {history.longitude.toFixed(3)}
+                      </span>
+                    )}
+                    <span>결과: {history.meetingStatus === 'completed' ? '완료' : '진행 중'}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
         <nav className="drawer-links">
           <a href="/login">로그아웃</a>
-          <a href="/signup">회원가입</a>
-          <span>모드: {serviceRole ? matchRoleLabels[serviceRole] : '관광객'}</span>
         </nav>
       </div>
       {menuOpen && <div className="drawer-backdrop" onClick={() => setMenuOpen(false)} />}

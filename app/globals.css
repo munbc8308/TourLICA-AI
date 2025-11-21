@@ -542,6 +542,33 @@ main {
   color: var(--accent);
 }
 
+.drawer-section {
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  padding-top: 0.8rem;
+}
+
+.drawer-section h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.drawer-section ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.history-list li {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
 .map-view {
   flex: 1;
   position: relative;

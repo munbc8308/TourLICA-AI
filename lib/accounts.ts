@@ -54,6 +54,30 @@ export async function findAccountByCredentials(email: string, password: string):
   return rows[0];
 }
 
+export async function findAccountById(id: number): Promise<Account | undefined> {
+  const rows = await query<Account>(
+    `SELECT
+      id,
+      role,
+      name,
+      nickname,
+      email,
+      password,
+      phone,
+      gender,
+      country,
+      device_fingerprint AS "deviceFingerprint",
+      interpreter_code AS "interpreterCode",
+      created_at AS "createdAt"
+    FROM accounts
+    WHERE id = $1
+    LIMIT 1`,
+    [id]
+  );
+
+  return rows[0];
+}
+
 export async function createAccount(newAccount: NewAccount): Promise<Account> {
   const rows = await query<Account>(
     `INSERT INTO accounts

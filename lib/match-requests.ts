@@ -246,6 +246,34 @@ export async function getAssignmentForAccount(args: {
   return rows[0];
 }
 
+export async function listAssignmentsForAccount(args: {
+  accountId: number;
+  perspective: 'tourist' | 'responder';
+  limit?: number;
+}): Promise<MatchAssignment[]> {
+  const field = args.perspective === 'tourist' ? 'tourist_account_id' : 'responder_account_id';
+  return query<MatchAssignment>(
+    `SELECT
+      ma.id,
+      ma.request_id AS "requestId",
+      ma.tourist_account_id AS "touristAccountId",
+      (SELECT name FROM accounts WHERE id = ma.tourist_account_id) AS "touristName",
+      ma.responder_account_id AS "responderAccountId",
+      (SELECT name FROM accounts WHERE id = ma.responder_account_id) AS "responderName",
+      ma.responder_role AS "responderRole",
+      ma.latitude,
+      ma.longitude,
+      ma.matched_at AS "matchedAt",
+      ma.meeting_status AS "meetingStatus",
+      ma.meeting_status_updated_at AS "meetingStatusUpdatedAt"
+    FROM match_assignments ma
+    WHERE ma.${field} = $1
+    ORDER BY ma.matched_at DESC
+    LIMIT $2`,
+    [args.accountId, args.limit ?? 20]
+  );
+}
+
 export async function requestMeetingConfirmation(args: {
   assignmentId: number;
   responderAccountId: number;
