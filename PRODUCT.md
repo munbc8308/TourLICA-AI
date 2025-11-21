@@ -45,3 +45,4 @@
 - **Confluent Cloud 테스트 클라이언트**: `ccloud-nodejs-client/`에 Confluent Cloud 자격(client.properties) 기반 게시/구독 스크립트를 추가했습니다. 관광객 모드(`publish`)는 매칭 이벤트를 손쉽게 발행하고, 통역사/도우미 모드(`consume`)는 역할별로 필터링된 요청을 확인할 수 있어 원격 Kafka 인프라와의 E2E 검증이 간편해졌습니다.
 - **매칭 대기 복원**: 관광객이 매칭 요청을 보낼 때마다 `match_requests` 테이블에 즉시 기록하고, `/api/match/status`로 최근 미완료 요청을 조회해 새로고침해도 기다리는 상태를 유지하도록 Map 페이지 로직을 보강했습니다. 취소 시에는 해당 레코드의 상태를 `cancelled`로 업데이트해 중복 호출을 방지합니다.
 - **실시간 이동 경로**: 매칭이 성사되면 `/api/match/assignment`로 관광객·통역사 정보를 동기화하고, `match_movements` 테이블에 15초 간격 위치 히스토리를 기록합니다. `/api/match/movements` API를 통해 양측 지도에서 동일한 Polyline 경로와 현재 위치를 볼 수 있으며, 수락 이후에도 새로고침 시 경로가 복원됩니다.
+- **만남 확정 흐름**: 통역사·도우미가 도착하면 `/api/match/meeting`으로 `meeting_status`를 `awaiting_confirmation`으로 변경하고, 관광객은 확인/취소 UI를 통해 최종 `completed` 상태를 확정합니다. 모든 상태 변경은 `match_assignments`에 타임스탬프와 위치까지 함께 저장되어 재접속 시에도 동일하게 복원됩니다.

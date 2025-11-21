@@ -246,24 +246,38 @@ export async function getAssignmentForAccount(args: {
   return rows[0];
 }
 
-export async function requestMeetingConfirmation(args: { assignmentId: number; responderAccountId: number }): Promise<MatchAssignment | undefined> {
-  return updateMeetingStatus(args.assignmentId, args.responderAccountId, 'responder_account_id', 'awaiting_confirmation');
+export async function requestMeetingConfirmation(args: {
+  assignmentId: number;
+  responderAccountId: number;
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<MatchAssignment | undefined> {
+  return updateMeetingStatus(args.assignmentId, args.responderAccountId, 'responder_account_id', 'awaiting_confirmation', args.latitude, args.longitude);
 }
 
-export async function confirmMeeting(args: { assignmentId: number; touristAccountId: number }): Promise<MatchAssignment | undefined> {
-  return updateMeetingStatus(args.assignmentId, args.touristAccountId, 'tourist_account_id', 'completed');
+export async function confirmMeeting(args: {
+  assignmentId: number;
+  touristAccountId: number;
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<MatchAssignment | undefined> {
+  return updateMeetingStatus(args.assignmentId, args.touristAccountId, 'tourist_account_id', 'completed', args.latitude, args.longitude);
 }
 
 async function updateMeetingStatus(
   assignmentId: number,
   accountId: number,
   ownershipColumn: 'responder_account_id' | 'tourist_account_id',
-  status: MeetingStatus
+  status: MeetingStatus,
+  latitude?: number | null,
+  longitude?: number | null
 ): Promise<MatchAssignment | undefined> {
   const rows = await query<MatchAssignment>(
     `UPDATE match_assignments ma
        SET meeting_status = $1,
-           meeting_status_updated_at = NOW()
+           meeting_status_updated_at = NOW(),
+           latitude = COALESCE($4, latitude),
+           longitude = COALESCE($5, longitude)
      WHERE ma.id = $2
        AND ma.${ownershipColumn} = $3
      RETURNING
@@ -279,7 +293,7 @@ async function updateMeetingStatus(
       ma.matched_at AS "matchedAt",
       ma.meeting_status AS "meetingStatus",
       ma.meeting_status_updated_at AS "meetingStatusUpdatedAt"`,
-    [status, assignmentId, accountId]
+    [status, assignmentId, accountId, latitude ?? null, longitude ?? null]
   );
 
   return rows[0];

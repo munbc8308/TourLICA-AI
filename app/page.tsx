@@ -20,7 +20,7 @@ export default function HomePage() {
       <div className="landing-inner">
         <div className="logo-stack">
           <div className="logo-glow" />
-          <Image src="/tourlica-logo.svg" alt="TourLICA 로고" width={220} height={220} priority />
+          <Image src="/tourLICA.png" alt="TourLICA 로고" width={220} height={220} priority />
           <p className="eyebrow">Tour Logistics & Conversational Agent</p>
           <h1>TourLICA</h1>
           <p className="tagline">유연한 여행 에이전트를 위한 초기 부팅 화면</p>

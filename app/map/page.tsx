@@ -223,40 +223,78 @@ export default function MapPage() {
 
   const handleMeetingArrival = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
-    try {
-      const response = await fetch('/api/match/meeting', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignmentId: activeAssignment.id, accountId: account.id, action: 'arrived' })
-      });
-      if (!response.ok) {
-        throw new Error('arrival failed');
+
+    const sendRequest = async (coords?: GeolocationCoordinates) => {
+      try {
+        const response = await fetch('/api/match/meeting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assignmentId: activeAssignment.id,
+            accountId: account.id,
+            action: 'arrived',
+            latitude: coords?.latitude ?? null,
+            longitude: coords?.longitude ?? null
+          })
+        });
+        if (!response.ok) {
+          throw new Error('arrival failed');
+        }
+        setMeetingPromptDismissedVersion(null);
+        await fetchAssignmentSnapshot();
+        setServiceMessage('관광객에게 만남 확인을 요청했습니다.');
+      } catch (error) {
+        console.error('만남 확인 요청 실패', error);
+        setServiceError('만남 확인 요청을 전송하지 못했습니다.');
       }
-      setMeetingPromptDismissedVersion(null);
-      await fetchAssignmentSnapshot();
-      setServiceMessage('관광객에게 만남 확인을 요청했습니다.');
-    } catch (error) {
-      console.error('만남 확인 요청 실패', error);
-      setServiceError('만남 확인 요청을 전송하지 못했습니다.');
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => sendRequest(pos.coords),
+        () => sendRequest(undefined),
+        { enableHighAccuracy: true }
+      );
+    } else {
+      sendRequest(undefined);
     }
   }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
 
   const handleMeetingConfirm = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
-    try {
-      const response = await fetch('/api/match/meeting', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignmentId: activeAssignment.id, accountId: account.id, action: 'confirm' })
-      });
-      if (!response.ok) {
-        throw new Error('confirm failed');
+
+    const sendConfirm = async (coords?: GeolocationCoordinates) => {
+      try {
+        const response = await fetch('/api/match/meeting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assignmentId: activeAssignment.id,
+            accountId: account.id,
+            action: 'confirm',
+            latitude: coords?.latitude ?? null,
+            longitude: coords?.longitude ?? null
+          })
+        });
+        if (!response.ok) {
+          throw new Error('confirm failed');
+        }
+        await fetchAssignmentSnapshot();
+        setMeetingPromptDismissedVersion(null);
+      } catch (error) {
+        console.error('만남 확인 실패', error);
+        setMatchError('만남을 확정하지 못했습니다. 잠시 후 다시 시도하세요.');
       }
-      await fetchAssignmentSnapshot();
-      setMeetingPromptDismissedVersion(null);
-    } catch (error) {
-      console.error('만남 확인 실패', error);
-      setMatchError('만남을 확정하지 못했습니다. 잠시 후 다시 시도하세요.');
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => sendConfirm(pos.coords),
+        () => sendConfirm(undefined),
+        { enableHighAccuracy: true }
+      );
+    } else {
+      sendConfirm(undefined);
     }
   }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
 

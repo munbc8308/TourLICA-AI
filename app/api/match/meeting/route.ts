@@ -8,6 +8,10 @@ export async function POST(request: Request) {
   const assignmentId = Number(body.assignmentId);
   const accountId = Number(body.accountId);
   const action = body.action;
+  const latitude = typeof body.latitude === 'number' ? body.latitude : Number(body.latitude);
+  const longitude = typeof body.longitude === 'number' ? body.longitude : Number(body.longitude);
+  const latValue = Number.isFinite(latitude) ? latitude : undefined;
+  const lngValue = Number.isFinite(longitude) ? longitude : undefined;
 
   if (!Number.isFinite(assignmentId) || !Number.isFinite(accountId)) {
     return NextResponse.json({ error: 'assignmentId/accountId 값이 필요합니다.' }, { status: 400 });
@@ -15,7 +19,7 @@ export async function POST(request: Request) {
 
   try {
     if (action === 'arrived') {
-      const result = await requestMeetingConfirmation({ assignmentId, responderAccountId: accountId });
+      const result = await requestMeetingConfirmation({ assignmentId, responderAccountId: accountId, latitude: latValue, longitude: lngValue });
       if (!result) {
         return NextResponse.json({ error: '매칭 정보를 찾을 수 없습니다.' }, { status: 404 });
       }
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'confirm') {
-      const result = await confirmMeeting({ assignmentId, touristAccountId: accountId });
+      const result = await confirmMeeting({ assignmentId, touristAccountId: accountId, latitude: latValue, longitude: lngValue });
       if (!result) {
         return NextResponse.json({ error: '매칭 정보를 찾을 수 없습니다.' }, { status: 404 });
       }
