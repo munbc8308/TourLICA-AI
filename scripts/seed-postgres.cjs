@@ -94,6 +94,18 @@ CREATE TABLE IF NOT EXISTS "${schema}".match_assignments (
   longitude DOUBLE PRECISION,
   matched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS "${schema}".match_movements (
+  id SERIAL PRIMARY KEY,
+  assignment_id INTEGER REFERENCES "${schema}".match_assignments(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('tourist', 'interpreter', 'helper')),
+  latitude DOUBLE PRECISION NOT NULL,
+  longitude DOUBLE PRECISION NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS match_movements_assignment_idx
+  ON "${schema}".match_movements (assignment_id, recorded_at DESC);
 `;
 }
 

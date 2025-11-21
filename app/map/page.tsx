@@ -1,10 +1,10 @@
 'use client';
 
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
-import { useEffect, useMemo, useState } from 'react';
+import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type MatchRole = 'interpreter' | 'helper';
-type MatchStage = 'idle' | 'selecting' | 'sending' | 'waiting';
+type MatchStage = 'idle' | 'selecting' | 'sending' | 'waiting' | 'matched';
 type AccountRole = 'tourist' | 'interpreter' | 'helper' | 'admin';
 
 interface AccountProfile {
@@ -23,6 +23,28 @@ interface PendingRequest {
   createdAt: string;
   device: string | null;
   targetRole: MatchRole;
+}
+
+interface MatchAssignment {
+  id: number;
+  requestId: number | null;
+  touristAccountId: number | null;
+  touristName: string | null;
+  responderAccountId: number | null;
+  responderName: string | null;
+  responderRole: MatchRole;
+  latitude: number | null;
+  longitude: number | null;
+  matchedAt: string;
+}
+
+interface MovementPoint {
+  id: number;
+  assignmentId: number;
+  role: 'tourist' | 'interpreter' | 'helper';
+  latitude: number;
+  longitude: number;
+  recordedAt: string;
 }
 
 const defaultCenter = { lat: 37.5665, lng: 126.978 }; // Seoul City Hall
@@ -52,9 +74,13 @@ export default function MapPage() {
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [activeAssignment, setActiveAssignment] = useState<MatchAssignment | null>(null);
+  const [movementPath, setMovementPath] = useState<MovementPoint[]>([]);
 
   const serviceRole = isServiceRole(account?.role) ? (account?.role as MatchRole) : null;
   const isTourist = !account || account.role === 'tourist';
+  const assignmentPerspective = serviceRole ? 'responder' : isTourist ? 'tourist' : null;
+  const assignmentId = activeAssignment?.id ?? null;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -144,6 +170,62 @@ export default function MapPage() {
     }
   }, [isTourist]);
 
+  const fetchAssignmentSnapshot = useCallback(async () => {
+    if (!assignmentPerspective || !account?.id) {
+      setActiveAssignment(null);
+      return;
+    }
+
+    const response = await fetch('/api/match/assignment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: account.id, perspective: assignmentPerspective })
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    const assignment = (data?.assignment ?? null) as MatchAssignment | null;
+    setActiveAssignment(assignment);
+
+    if (assignment) {
+      if (assignment.latitude && assignment.longitude) {
+        setCenter({ lat: assignment.latitude, lng: assignment.longitude });
+      }
+      if (isTourist) {
+        setMatchStage('matched');
+        setMatchRole(assignment.responderRole);
+        setMatchError(null);
+        setCurrentRequestId(null);
+      }
+    } else if (isTourist && matchStage === 'matched') {
+      setMatchStage('idle');
+      setMatchRole(null);
+    }
+  }, [assignmentPerspective, account?.id, isTourist, matchStage]);
+
+  useEffect(() => {
+    if (!assignmentPerspective || !account?.id) {
+      setActiveAssignment(null);
+      return;
+    }
+    let cancelled = false;
+
+    async function load() {
+      if (cancelled) return;
+      await fetchAssignmentSnapshot();
+    }
+
+    load();
+    const interval = window.setInterval(load, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [assignmentPerspective, account?.id, fetchAssignmentSnapshot]);
+
   useEffect(() => {
     const accountId = account?.id;
     if (!isTourist || !accountId) {
@@ -195,6 +277,87 @@ export default function MapPage() {
     };
   }, [isTourist, account?.id]);
 
+  useEffect(() => {
+    if (!assignmentId) {
+      setMovementPath([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadMovements() {
+      if (cancelled) return;
+      try {
+        const response = await fetch(`/api/match/movements?assignmentId=${assignmentId}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) {
+          const parsed = (data?.movements ?? []).map((movement: MovementPoint) => ({
+            ...movement,
+            latitude: Number(movement.latitude),
+            longitude: Number(movement.longitude)
+          }));
+          setMovementPath(parsed);
+        }
+      } catch (error) {
+        console.warn('이동 경로를 불러오지 못했습니다.', error);
+      }
+    }
+
+    loadMovements();
+    const interval = window.setInterval(loadMovements, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [assignmentId, activeAssignment?.id]);
+
+  useEffect(() => {
+    const assignmentId = activeAssignment?.id;
+    if (!assignmentId || !account?.id) {
+      return;
+    }
+
+    const trackingRole: 'tourist' | 'interpreter' | 'helper' | null = isTourist
+      ? 'tourist'
+      : serviceRole
+      ? serviceRole
+      : null;
+
+    if (!trackingRole || typeof navigator === 'undefined' || !navigator.geolocation) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const sendPosition = () => {
+      if (cancelled) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          fetch('/api/match/movements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assignmentId,
+              role: trackingRole,
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude
+            })
+          }).catch(() => {});
+        },
+        () => {},
+        { maximumAge: 0, enableHighAccuracy: true }
+      );
+    };
+
+    sendPosition();
+    const interval = window.setInterval(sendPosition, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [assignmentId, activeAssignment?.id, account?.id, isTourist, serviceRole]);
+
   const statusMessage = useMemo(() => {
     if (matchStage === 'waiting' && matchRole) {
       return `${matchRoleLabels[matchRole]} 호출 중입니다. 주변 전문가가 응답할 때까지 잠시만 기다려 주세요.`;
@@ -204,6 +367,9 @@ export default function MapPage() {
     }
     if (matchStage === 'selecting') {
       return '필요한 지원 유형을 선택하세요.';
+    }
+    if (matchStage === 'matched' && matchRole) {
+      return `${matchRoleLabels[matchRole]}와 연결되었습니다. 이동 경로를 따라오세요.`;
     }
     return null;
   }, [matchStage, matchRole]);
@@ -325,6 +491,7 @@ export default function MapPage() {
       setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
       setServiceMessage('매칭을 수락했습니다. 관광객에게 연결 알림을 보내는 중입니다.');
       setActiveRequestId(null);
+      await fetchAssignmentSnapshot();
     } catch (error) {
       console.error('매칭 수락 실패', error);
       setServiceError(error instanceof Error ? error.message : '매칭 수락 처리 중 오류가 발생했습니다.');
@@ -383,6 +550,22 @@ export default function MapPage() {
       );
     }
 
+    if (matchStage === 'matched' && activeAssignment) {
+      const responderName = activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole];
+      return (
+        <>
+          <p>
+            {responderName} 님이 이동 중입니다. 위치가 갱신되면 지도에 경로가 표시됩니다.
+          </p>
+          <div className="match-actions">
+            <button type="button" onClick={() => fetchAssignmentSnapshot()}>
+              경로 새로고침
+            </button>
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         <p>가까운 통역사/도우미가 필요하신가요?</p>
@@ -398,6 +581,26 @@ export default function MapPage() {
   const renderServiceControls = () => {
     if (!serviceRole) {
       return <p>통역사/도우미 계정으로 로그인하면 실시간 요청을 수신합니다.</p>;
+    }
+
+    if (activeAssignment) {
+      return (
+        <>
+          <div>
+            <p>
+              <strong>{activeAssignment.touristName ?? '관광객'}</strong>님과 연결되었습니다.
+            </p>
+            <p className="match-status">
+              매칭 시각 {new Date(activeAssignment.matchedAt).toLocaleTimeString()}
+            </p>
+          </div>
+          <div className="match-actions">
+            <button type="button" className="outline" onClick={() => fetchAssignmentSnapshot()} disabled={accepting}>
+              새로 고침
+            </button>
+          </div>
+        </>
+      );
     }
 
     if (!activeRequest) {
@@ -451,8 +654,35 @@ export default function MapPage() {
                 zoom={13}
                 options={{ disableDefaultUI: true, zoomControl: true }}
               >
-                {!serviceRole && <Marker position={center} title="현재 위치" />}
-                {serviceRole &&
+                {!serviceRole && !activeAssignment && <Marker position={center} title="현재 위치" />}
+                {activeAssignment && activeAssignment.latitude && activeAssignment.longitude && (
+                  <Marker
+                    position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
+                    title="관광객 위치"
+                    label="관광객"
+                  />
+                )}
+                {movementPath.length > 0 && (
+                  <Marker
+                    position={{
+                      lat: movementPath[movementPath.length - 1].latitude,
+                      lng: movementPath[movementPath.length - 1].longitude
+                    }}
+                    title="통역사/도우미 위치"
+                    label="전문가"
+                  />
+                )}
+                {movementPath.length > 1 && (
+                  <Polyline
+                    path={movementPath.map((point) => ({ lat: point.latitude, lng: point.longitude }))}
+                    options={{
+                      strokeColor: '#38bdf8',
+                      strokeOpacity: 0.9,
+                      strokeWeight: 4
+                    }}
+                  />
+                )}
+                {!activeAssignment &&
                   pendingRequests.map((request) => (
                     <Marker
                       key={request.id}
@@ -484,24 +714,40 @@ export default function MapPage() {
           {isTourist ? (
             <>
               <p>사용자의 현재 위치를 기반으로 반경 내 통역사/도우미를 시각화합니다.</p>
-              {locationError && <p className="map-alert">{locationError}</p>}
-              <ul>
-                <li>지도 하단에서 통역사 · 도우미 중 원하는 지원 유형을 골라 Kafka 매칭 이벤트를 발행합니다.</li>
-                <li>파형 애니메이션은 주변 반경에 요청이 브로드캐스트되고 있음을 시각화합니다.</li>
-                <li>매칭 취소 버튼을 누르면 즉시 Kafka에 취소 이벤트가 전송됩니다.</li>
-              </ul>
-            </>
-          ) : (
-            <>
-              <p>Kafka 대기열에서 관광객 요청을 수신해 원하는 건을 매칭할 수 있습니다.</p>
-              <ul>
-                <li>새 요청이 들어오면 지도 중심이 관광객 위치로 이동합니다.</li>
-                <li>마커를 클릭하면 상세 정보를 확인하고, 하단에서 매칭을 수락할 수 있습니다.</li>
-                <li>매칭을 수락하면 매칭 이력 테이블에 관광객/통역사/도우미 정보가 기록됩니다.</li>
-              </ul>
-            </>
+          {locationError && <p className="map-alert">{locationError}</p>}
+          <ul>
+            <li>지도 하단에서 통역사 · 도우미 중 원하는 지원 유형을 골라 Kafka 매칭 이벤트를 발행합니다.</li>
+            <li>파형 애니메이션은 주변 반경에 요청이 브로드캐스트되고 있음을 시각화합니다.</li>
+            <li>매칭 취소 버튼을 누르면 즉시 Kafka에 취소 이벤트가 전송됩니다.</li>
+          </ul>
+          {activeAssignment && (
+            <div className="assignment-panel">
+              <p>
+                현재 <strong>{activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole]}</strong> 님과 매칭되었습니다.
+              </p>
+              <p className="match-status">매칭 시각: {new Date(activeAssignment.matchedAt).toLocaleTimeString()}</p>
+            </div>
           )}
-        </aside>
+        </>
+      ) : (
+        <>
+          <p>Kafka 대기열에서 관광객 요청을 수신해 원하는 건을 매칭할 수 있습니다.</p>
+          <ul>
+            <li>새 요청이 들어오면 지도 중심이 관광객 위치로 이동합니다.</li>
+            <li>마커를 클릭하면 상세 정보를 확인하고, 하단에서 매칭을 수락할 수 있습니다.</li>
+            <li>매칭을 수락하면 매칭 이력 테이블에 관광객/통역사/도우미 정보가 기록됩니다.</li>
+          </ul>
+          {activeAssignment && (
+            <div className="assignment-panel">
+              <p>
+                <strong>{activeAssignment.touristName ?? '관광객'}</strong>님과 이동 경로를 공유 중입니다.
+              </p>
+              <p className="match-status">위치를 15초 간격으로 업데이트하고 있습니다.</p>
+            </div>
+          )}
+        </>
+      )}
+      </aside>
       </div>
     </main>
   );

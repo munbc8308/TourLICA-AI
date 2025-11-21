@@ -30,10 +30,13 @@ docker compose up -d redpanda
 - `app/api/events` – Kafka 이벤트 발행용 API 라우트 예시
 - `app/api/match/requests` – 통역사/도우미가 수신 대기 중인 매칭 요청을 폴링하는 API
 - `app/api/match/accept` – 매칭 요청을 수락하고 매칭 기록을 저장하는 API
+- `app/api/match/status` – 관광객이 새로고침해도 대기 상태를 복원할 수 있도록 pending 요청을 조회
+- `app/api/match/assignment` – 매칭된 관광객/통역사 조합 정보를 반환
+- `app/api/match/movements` – 15초 간격 위치 데이터 저장/조회
 - `app/signup/` – 역할별 회원가입 선택 화면과 세부 폼
 - `app/map/` – Google Maps 기반 지도 UI 샘플
 - `public/` – 파비콘 및 정적 자산
-- `lib/` – PostgreSQL 클라이언트(`lib/db.ts`), 계정/매칭 헬퍼(`lib/accounts.ts`, `lib/match-requests.ts`)
+- `lib/` – PostgreSQL 클라이언트(`lib/db.ts`), 계정/매칭/이동 경로 헬퍼(`lib/accounts.ts`, `lib/match-requests.ts`, `lib/match-movements.ts`)
 - `configs/`, `scripts/` 등은 필요 시 추가하세요. 구조화 지침은 `AGENTS.md` 참고
 
 Next.js 서버 컴포넌트와 API 라우트는 `pg`를 이용해 PostgreSQL 데이터를 읽습니다. `.env.local`에 `POSTGRES_URL`을 정의하고 `npm run seed:postgres` 명령으로 샘플 데이터(계정, 여행지)를 DB에 채워둘 수 있습니다.

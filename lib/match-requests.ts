@@ -3,6 +3,19 @@ import { query } from './db';
 export type MatchRole = 'interpreter' | 'helper';
 export type MatchRequestStatus = 'pending' | 'cancelled' | 'matched';
 
+export interface MatchAssignment {
+  id: number;
+  requestId: number | null;
+  touristAccountId: number | null;
+  touristName: string | null;
+  responderAccountId: number | null;
+  responderName: string | null;
+  responderRole: MatchRole;
+  latitude: number | null;
+  longitude: number | null;
+  matchedAt: string;
+}
+
 export interface MatchRequest {
   id: number;
   requesterAccountId: number | null;
@@ -196,6 +209,35 @@ export async function markMatchRequestMatched(args: {
   );
 
   return { assignmentId: assignment.id, request };
+}
+
+export async function getAssignmentForAccount(args: {
+  accountId: number;
+  perspective: 'tourist' | 'responder';
+}): Promise<MatchAssignment | undefined> {
+  const field = args.perspective === 'tourist' ? 'tourist_account_id' : 'responder_account_id';
+  const rows = await query<MatchAssignment>(
+    `SELECT
+      ma.id,
+      ma.request_id AS "requestId",
+      ma.tourist_account_id AS "touristAccountId",
+      tourist.name AS "touristName",
+      ma.responder_account_id AS "responderAccountId",
+      responder.name AS "responderName",
+      ma.responder_role AS "responderRole",
+      ma.latitude,
+      ma.longitude,
+      ma.matched_at AS "matchedAt"
+    FROM match_assignments ma
+    LEFT JOIN accounts tourist ON tourist.id = ma.tourist_account_id
+    LEFT JOIN accounts responder ON responder.id = ma.responder_account_id
+    WHERE ma.${field} = $1
+    ORDER BY ma.matched_at DESC
+    LIMIT 1`,
+    [args.accountId]
+  );
+
+  return rows[0];
 }
 
 function sanitize(value?: string | null): string | null {
