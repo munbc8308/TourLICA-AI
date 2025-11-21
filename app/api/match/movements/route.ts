@@ -19,7 +19,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const assignmentId = Number(body.assignmentId);
-  const role = body.role;
   const latitude = Number(body.latitude);
   const longitude = Number(body.longitude);
 
@@ -27,14 +26,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'assignmentId/latitude/longitude 값이 필요합니다.' }, { status: 400 });
   }
 
-  if (!isMovementRole(role)) {
-    return NextResponse.json({ error: '지원되지 않는 역할입니다.' }, { status: 400 });
-  }
-
-  const movement = await recordMovement({ assignmentId, role, latitude, longitude });
+  const movement = await recordMovement({ assignmentId, latitude, longitude });
   return NextResponse.json({ movement });
-}
-
-function isMovementRole(role: any): role is 'tourist' | 'interpreter' | 'helper' {
-  return role === 'tourist' || role === 'interpreter' || role === 'helper';
 }

@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS "${schema}".match_assignments (
 CREATE TABLE IF NOT EXISTS "${schema}".match_movements (
   id SERIAL PRIMARY KEY,
   assignment_id INTEGER REFERENCES "${schema}".match_assignments(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('tourist', 'interpreter', 'helper')),
+  role TEXT NOT NULL CHECK (role IN ('responder')),
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

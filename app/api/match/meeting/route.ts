@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       if (!result) {
         return NextResponse.json({ error: '매칭 정보를 찾을 수 없습니다.' }, { status: 404 });
       }
-      return NextResponse.json({ assignment: result });
+      return NextResponse.json({ assignment: result, reset: true });
     }
 
     return NextResponse.json({ error: '지원되지 않는 action 입니다.' }, { status: 400 });

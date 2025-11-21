@@ -286,6 +286,18 @@ export default function MapPage() {
     }
   }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
 
+  const resetToInitialState = useCallback(() => {
+    setMatchStage('idle');
+    setMatchRole(null);
+    setActiveAssignment(null);
+    setMovementPath([]);
+    setMeetingPromptDismissedVersion(null);
+    setServiceMessage(null);
+    setServiceError(null);
+    setPendingRequests([]);
+    setActiveRequestId(null);
+  }, []);
+
   const handleMeetingConfirm = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
 
@@ -307,6 +319,7 @@ export default function MapPage() {
         }
         await fetchAssignmentSnapshot();
         setMeetingPromptDismissedVersion(null);
+        resetToInitialState();
       } catch (error) {
         console.error('만남 확인 실패', error);
         setMatchError('만남을 확정하지 못했습니다. 잠시 후 다시 시도하세요.');
@@ -322,7 +335,7 @@ export default function MapPage() {
     } else {
       sendConfirm(undefined);
     }
-  }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
+  }, [activeAssignment, account?.id, fetchAssignmentSnapshot, resetToInitialState]);
 
   const handleMeetingPromptDismiss = useCallback(() => {
     if (!activeAssignment) return;
@@ -442,11 +455,7 @@ export default function MapPage() {
       return;
     }
 
-    const trackingRole: 'tourist' | 'interpreter' | 'helper' | null = isTourist
-      ? 'tourist'
-      : serviceRole
-      ? serviceRole
-      : null;
+    const trackingRole: 'tourist' | 'interpreter' | 'helper' | null = serviceRole ? serviceRole : null;
 
     if (!trackingRole || typeof navigator === 'undefined' || !navigator.geolocation) {
       return;
@@ -464,7 +473,6 @@ export default function MapPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               assignmentId,
-              role: trackingRole,
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude
             })
@@ -797,7 +805,7 @@ export default function MapPage() {
                 zoom={13}
                 options={{ disableDefaultUI: true, zoomControl: true }}
               >
-                {!serviceRole && !activeAssignment && <Marker position={center} title="현재 위치" />}
+                {!serviceRole && <Marker position={center} title="현재 위치" />}
                 {selfLocation && serviceRole && (
                   <Marker position={selfLocation} title="내 위치" label="나" />
                 )}
