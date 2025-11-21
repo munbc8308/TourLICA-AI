@@ -460,28 +460,99 @@ main {
 
 .map-page {
   min-height: 100vh;
-  padding: 2rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  background: radial-gradient(circle at top, var(--bg-start), var(--bg-end));
 }
 
-.map-wrapper {
-  width: min(1200px, 100%);
-  min-height: 500px;
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
+.map-nav {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: rgba(2, 6, 23, 0.85);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.map-brand {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.nav-toggle {
+  border: none;
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--fg);
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.map-nav-role {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.map-drawer {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  width: 260px;
+  height: calc(100% - 64px);
+  background: rgba(15, 23, 42, 0.95);
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.map-drawer.open {
+  transform: translateX(0);
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.5);
+  z-index: 12;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.drawer-links a {
+  color: var(--accent);
+}
+
+.map-view {
+  flex: 1;
+  position: relative;
 }
 
 .map-canvas {
   width: 100%;
-  min-height: 500px;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 25px 60px rgba(2, 6, 23, 0.6);
+  height: calc(100vh - 64px);
+  border-radius: 0;
   position: relative;
-  background: rgba(15, 23, 42, 0.6);
+  overflow: hidden;
 }
 
 .map-panel {
@@ -492,6 +563,11 @@ main {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: min(360px, 90%);
+  box-shadow: 0 25px 60px rgba(2, 6, 23, 0.6);
 }
 
 .map-status {
@@ -647,16 +723,16 @@ main {
 }
 
 @media (max-width: 960px) {
-  .map-wrapper {
-    grid-template-columns: 1fr;
+  .map-panel {
+    position: static;
+    width: calc(100% - 2rem);
+    margin: 1rem auto;
   }
 
   .map-canvas {
-    min-height: 320px;
+    height: calc(100vh - 64px);
   }
-}
 
-@media (max-width: 600px) {
   .map-match-controls {
     width: calc(100% - 2rem);
     bottom: 1rem;

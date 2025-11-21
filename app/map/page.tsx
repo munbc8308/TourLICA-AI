@@ -95,6 +95,7 @@ export default function MapPage() {
         activeAssignment.meetingStatusUpdatedAt !== meetingPromptDismissedVersion
     );
   const userMarkerPosition = selfLocation ?? (!serviceRole ? center : null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const resetToInitialState = useCallback(() => {
     setMatchStage('idle');
@@ -839,7 +840,28 @@ export default function MapPage() {
 
   return (
     <main className="map-page">
-      <div className="map-wrapper">
+      <header className="map-nav">
+        <button type="button" className="nav-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label="메뉴 열기">
+          ☰
+        </button>
+        <div className="map-brand">TourLICA 이동 제어</div>
+        <div className="map-nav-role">{serviceRole ? '통역사/도우미 모드' : '관광객 모드'}</div>
+      </header>
+      <div className={`map-drawer ${menuOpen ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <p>{account?.name ?? '게스트'}</p>
+          <button type="button" onClick={() => setMenuOpen(false)} aria-label="메뉴 닫기">
+            ✕
+          </button>
+        </div>
+        <nav className="drawer-links">
+          <a href="/login">로그아웃</a>
+          <a href="/signup">회원가입</a>
+          <span>모드: {serviceRole ? matchRoleLabels[serviceRole] : '관광객'}</span>
+        </nav>
+      </div>
+      {menuOpen && <div className="drawer-backdrop" onClick={() => setMenuOpen(false)} />}
+      <div className="map-view">
         {loadError ? (
           <p className="map-status">지도를 불러올 수 없습니다. API Key를 확인하세요.</p>
         ) : (
