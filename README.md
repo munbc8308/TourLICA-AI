@@ -56,6 +56,9 @@ POSTGRES_USER=tourLica_ai_blindsight
 POSTGRES_PASSWORD=f7ae4eea5cc93c7663a10cc39155707dfacdd037
 POSTGRES_SSL=false
 POSTGRES_SCHEMA=public
+POSTGRES_POOL_MAX=5
+POSTGRES_POOL_IDLE=10000
+POSTGRES_POOL_TIMEOUT=5000
 KAFKA_CLIENT_ID=tourlica-web
 KAFKA_BROKERS=localhost:19092
 KAFKA_TOPIC=tourlica-events
@@ -66,7 +69,7 @@ KAFKA_SASL_PASSWORD=
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
-- PostgreSQL: `POSTGRES_URL`을 비워두면 호스트/포트/DB/사용자/비밀번호 조합으로 접속합니다. SSL 지원이 필요 없으면 `POSTGRES_SSL=false`, 특정 스키마를 사용한다면 `POSTGRES_SCHEMA`를 지정하세요.
+- PostgreSQL: `POSTGRES_URL`을 비워두면 호스트/포트/DB/사용자/비밀번호 조합으로 접속합니다. SSL 지원이 필요 없으면 `POSTGRES_SSL=false`, 특정 스키마를 사용한다면 `POSTGRES_SCHEMA`를 지정하세요. 커넥션 수가 많다면 `POSTGRES_POOL_MAX`(기본 10), `POSTGRES_POOL_IDLE`(idle timeout ms), `POSTGRES_POOL_TIMEOUT`(connection timeout ms)을 조정해 풀 사용량을 제한할 수 있습니다.
 - Kafka: 로컬 Redpanda는 `localhost:19092`로 접속하면 되고, Confluent Cloud를 사용할 때는 `KAFKA_BROKERS`, `KAFKA_SSL=true`, `KAFKA_SASL_*`(mechanism/username/password)를 설정하세요. 서버 런타임은 `.env`, `.env.local`, `.env.production` 값을 자동으로 로드하므로 원하는 파일에 입력하면 됩니다.
 - Google Maps: JavaScript API 키를 입력하세요.
 

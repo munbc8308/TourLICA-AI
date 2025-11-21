@@ -7,7 +7,12 @@ declare global {
 
 function buildConfig(): PoolConfig {
   if (process.env.POSTGRES_URL && process.env.POSTGRES_URL.trim().length > 0) {
-    return { connectionString: process.env.POSTGRES_URL };
+    return {
+      connectionString: process.env.POSTGRES_URL,
+      max: parseInt(process.env.POSTGRES_POOL_MAX ?? '', 10) || undefined,
+      idleTimeoutMillis: parseInt(process.env.POSTGRES_POOL_IDLE ?? '', 10) || undefined,
+      connectionTimeoutMillis: parseInt(process.env.POSTGRES_POOL_TIMEOUT ?? '', 10) || undefined
+    };
   }
 
   const required = ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DATABASE', 'POSTGRES_USER', 'POSTGRES_PASSWORD'] as const;
@@ -23,7 +28,10 @@ function buildConfig(): PoolConfig {
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
     ssl: parseSsl(),
-    options: parseSearchPathOption()
+    options: parseSearchPathOption(),
+    max: parseInt(process.env.POSTGRES_POOL_MAX ?? '', 10) || undefined,
+    idleTimeoutMillis: parseInt(process.env.POSTGRES_POOL_IDLE ?? '', 10) || undefined,
+    connectionTimeoutMillis: parseInt(process.env.POSTGRES_POOL_TIMEOUT ?? '', 10) || undefined
   };
 }
 
