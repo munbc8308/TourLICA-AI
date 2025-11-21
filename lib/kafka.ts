@@ -37,7 +37,8 @@ function parseKafkaSsl(): boolean | undefined {
 }
 
 function parseKafkaSasl(): SASLOptions | undefined {
-  const mechanism = process.env.KAFKA_SASL_MECHANISM?.toLowerCase() as SASLOptions['mechanism'];
+  const mechanismInput = process.env.KAFKA_SASL_MECHANISM?.toLowerCase();
+  const mechanism = parseMechanism(mechanismInput);
   const username = process.env.KAFKA_SASL_USERNAME;
   const password = process.env.KAFKA_SASL_PASSWORD;
 
@@ -50,4 +51,12 @@ function parseKafkaSasl(): SASLOptions | undefined {
     username,
     password
   };
+}
+
+function parseMechanism(value?: string): SASLOptions['mechanism'] | undefined {
+  if (!value) return undefined;
+  if (value === 'plain' || value === 'scram-sha-256' || value === 'scram-sha-512' || value === 'aws' || value === 'oauthbearer') {
+    return value;
+  }
+  return undefined;
 }
