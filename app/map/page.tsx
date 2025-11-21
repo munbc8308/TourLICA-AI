@@ -94,6 +94,20 @@ export default function MapPage() {
     );
   const userMarkerPosition = selfLocation ?? (!serviceRole ? center : null);
 
+  const resetToInitialState = useCallback(() => {
+    setMatchStage('idle');
+    setMatchRole(null);
+    setActiveAssignment(null);
+    setMovementPath([]);
+    setMeetingPromptDismissedVersion(null);
+    setServiceMessage(null);
+    setServiceError(null);
+    setPendingRequests([]);
+    setActiveRequestId(null);
+    setCurrentRequestId(null);
+    setMatchError(null);
+  }, []);
+
   useEffect(() => {
     if (!activeAssignment || activeAssignment.meetingStatus !== 'awaiting_confirmation') {
       setMeetingPromptDismissedVersion(null);
@@ -195,7 +209,7 @@ export default function MapPage() {
 
   const fetchAssignmentSnapshot = useCallback(async () => {
     if (!assignmentPerspective || !account?.id) {
-      setActiveAssignment(null);
+      resetToInitialState();
       return;
     }
 
@@ -211,24 +225,25 @@ export default function MapPage() {
 
     const data = await response.json();
     const assignment = (data?.assignment ?? null) as MatchAssignment | null;
+
+    if (!assignment || assignment.meetingStatus === 'completed') {
+      resetToInitialState();
+      return;
+    }
+
     setActiveAssignment(assignment);
 
-    if (assignment) {
-      if (assignment.latitude && assignment.longitude) {
-        setCenter({ lat: assignment.latitude, lng: assignment.longitude });
-        setMapZoom(15);
-      }
-      if (isTourist) {
-        setMatchStage('matched');
-        setMatchRole(assignment.responderRole);
-        setMatchError(null);
-        setCurrentRequestId(null);
-      }
-    } else if (isTourist && matchStage === 'matched') {
-      setMatchStage('idle');
-      setMatchRole(null);
+    if (assignment.latitude && assignment.longitude) {
+      setCenter({ lat: assignment.latitude, lng: assignment.longitude });
+      setMapZoom(15);
     }
-  }, [assignmentPerspective, account?.id, isTourist, matchStage]);
+    if (isTourist) {
+      setMatchStage('matched');
+      setMatchRole(assignment.responderRole);
+      setMatchError(null);
+      setCurrentRequestId(null);
+    }
+  }, [assignmentPerspective, account?.id, isTourist, resetToInitialState]);
 
   useEffect(() => {
     if (!isTourist || !account?.id) return;
@@ -290,18 +305,6 @@ export default function MapPage() {
       sendRequest(undefined);
     }
   }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
-
-  const resetToInitialState = useCallback(() => {
-    setMatchStage('idle');
-    setMatchRole(null);
-    setActiveAssignment(null);
-    setMovementPath([]);
-    setMeetingPromptDismissedVersion(null);
-    setServiceMessage(null);
-    setServiceError(null);
-    setPendingRequests([]);
-    setActiveRequestId(null);
-  }, []);
 
   const handleMeetingConfirm = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
