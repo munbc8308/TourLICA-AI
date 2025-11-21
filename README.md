@@ -54,11 +54,15 @@ POSTGRES_SCHEMA=public
 KAFKA_CLIENT_ID=tourlica-web
 KAFKA_BROKERS=localhost:19092
 KAFKA_TOPIC=tourlica-events
+KAFKA_SSL=false
+KAFKA_SASL_MECHANISM=plain
+KAFKA_SASL_USERNAME=
+KAFKA_SASL_PASSWORD=
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 ```
 
 - PostgreSQL: `POSTGRES_URL`을 비워두면 호스트/포트/DB/사용자/비밀번호 조합으로 접속합니다. SSL 지원이 필요 없으면 `POSTGRES_SSL=false`, 특정 스키마를 사용한다면 `POSTGRES_SCHEMA`를 지정하세요.
-- Kafka: Redpanda 컨테이너가 `localhost:19092`에서 실행되도록 설정했습니다.
+- Kafka: 로컬 Redpanda는 `localhost:19092`로 접속하면 되고, Confluent Cloud를 사용할 때는 `KAFKA_BROKERS`, `KAFKA_SSL=true`, `KAFKA_SASL_*`(mechanism/username/password)를 설정하세요.
 - Google Maps: JavaScript API 키를 입력하세요.
 
 ### 샘플 계정

@@ -1,4 +1,4 @@
-import { Kafka, type KafkaConfig } from 'kafkajs';
+import { Kafka, type KafkaConfig, type SASLOptions } from 'kafkajs';
 
 const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:19092')
   .split(',')
@@ -7,7 +7,9 @@ const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:19092')
 
 const baseConfig: KafkaConfig = {
   clientId: process.env.KAFKA_CLIENT_ID ?? 'tourlica-web',
-  brokers
+  brokers,
+  ssl: parseKafkaSsl(),
+  sasl: parseKafkaSasl()
 };
 
 const kafka = new Kafka(baseConfig);
@@ -24,4 +26,28 @@ export async function getKafkaProducer() {
 
 export function getKafkaConfig() {
   return baseConfig;
+}
+
+function parseKafkaSsl(): boolean | undefined {
+  if (!process.env.KAFKA_SSL) {
+    return undefined;
+  }
+  const value = process.env.KAFKA_SSL.toLowerCase();
+  return value !== 'false' && value !== '0' && value !== 'off';
+}
+
+function parseKafkaSasl(): SASLOptions | undefined {
+  const mechanism = process.env.KAFKA_SASL_MECHANISM?.toLowerCase() as SASLOptions['mechanism'];
+  const username = process.env.KAFKA_SASL_USERNAME;
+  const password = process.env.KAFKA_SASL_PASSWORD;
+
+  if (!mechanism || !username || !password) {
+    return undefined;
+  }
+
+  return {
+    mechanism,
+    username,
+    password
+  };
 }
