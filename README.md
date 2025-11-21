@@ -19,7 +19,7 @@ docker compose up -d redpanda
 - `npm run build`: 프로덕션 번들 생성 (`prebuild` 단계에서 자동으로 `npm run seed:postgres` 실행)
 - `npm run start`: 빌드 산출물을 실행
 - `npm run lint`: ESLint 검증
-- `npm run seed:postgres`: PostgreSQL에 샘플 계정/도시 데이터 업로드
+- `npm run seed:postgres`: PostgreSQL에 샘플 계정/도시 데이터 업로드 (accounts 테이블 컬럼/제약도 자동 업그레이드)
 - `docker compose up -d redpanda`: Kafka 호환 Redpanda 브로커 실행
 - `./scripts/kafka-create-topic.sh <topic>`: 기본 토픽(`tourlica-events`) 생성
 
@@ -28,6 +28,7 @@ docker compose up -d redpanda
 - `app/` – Next.js app router 페이지, 글로벌 스타일, 재사용 컴포넌트
 - `app/api/destinations` – PostgreSQL에서 여행지 데이터를 읽어오는 API 라우트
 - `app/api/events` – Kafka 이벤트 발행용 API 라우트 예시
+- `app/signup/` – 역할별 회원가입 선택 화면과 세부 폼
 - `app/map/` – Google Maps 기반 지도 UI 샘플
 - `public/` – 파비콘 및 정적 자산
 - `lib/` – PostgreSQL 클라이언트(`lib/db.ts`)와 쿼리 함수
@@ -67,3 +68,4 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBfPVL3ax4RrezJdLpIgEESJVKUgfN_9ig
 | 관광객 | traveler@tourlica.com | tour1234 |
 | 통역사 | interpreter@tourlica.com | lingo123 |
 | 도우미 | helper@tourlica.com | assist123 |
+| 관리자 | admin@tourlica.com | control123 |

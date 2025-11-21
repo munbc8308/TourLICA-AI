@@ -14,7 +14,8 @@ const socials = [
 const demoAccounts = [
   { role: '관광객', email: 'traveler@tourlica.com', password: 'tour1234' },
   { role: '통역사', email: 'interpreter@tourlica.com', password: 'lingo123' },
-  { role: '도우미', email: 'helper@tourlica.com', password: 'assist123' }
+  { role: '도우미', email: 'helper@tourlica.com', password: 'assist123' },
+  { role: '관리자', email: 'admin@tourlica.com', password: 'control123' }
 ];
 
 export default function LoginPage() {
@@ -79,7 +80,7 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="login-links">
-          <Link href="#signup">회원가입</Link>
+          <Link href="/signup">회원가입</Link>
           <Link href="#reset">비밀번호 찾기</Link>
         </div>
         <div className="divider">

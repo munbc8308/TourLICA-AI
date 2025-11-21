@@ -42,10 +42,17 @@ function getSchemaSql(schema) {
   return `
 CREATE TABLE IF NOT EXISTS "${schema}".accounts (
   id SERIAL PRIMARY KEY,
-  role TEXT NOT NULL CHECK (role IN ('tourist', 'interpreter', 'helper')),
+  role TEXT NOT NULL CHECK (role IN ('tourist', 'interpreter', 'helper', 'admin')),
   name TEXT NOT NULL,
+  nickname TEXT,
   email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL
+  password TEXT NOT NULL,
+  phone TEXT,
+  gender TEXT,
+  country TEXT,
+  device_fingerprint TEXT,
+  interpreter_code TEXT UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS "${schema}".destinations (
@@ -61,9 +68,51 @@ CREATE TABLE IF NOT EXISTS "${schema}".destinations (
 }
 
 const accountInserts = [
-  { role: 'tourist', name: 'Liam Traveler', email: 'traveler@tourlica.com', password: 'tour1234' },
-  { role: 'interpreter', name: 'Jiyoon Choi', email: 'interpreter@tourlica.com', password: 'lingo123' },
-  { role: 'helper', name: 'Minho Park', email: 'helper@tourlica.com', password: 'assist123' }
+  {
+    role: 'tourist',
+    name: 'Liam Traveler',
+    nickname: 'Liam',
+    email: 'traveler@tourlica.com',
+    password: 'tour1234',
+    phone: '+82-10-1234-1234',
+    gender: 'male',
+    country: 'United States',
+    device_fingerprint: 'seed-device-tourist'
+  },
+  {
+    role: 'interpreter',
+    name: 'Jiyoon Choi',
+    nickname: 'Interpreter JY',
+    email: 'interpreter@tourlica.com',
+    password: 'lingo123',
+    phone: '+82-10-9999-0000',
+    gender: 'female',
+    country: 'Korea',
+    device_fingerprint: 'seed-device-interpreter',
+    interpreter_code: 'INT-0001'
+  },
+  {
+    role: 'helper',
+    name: 'Minho Park',
+    nickname: 'Field Buddy',
+    email: 'helper@tourlica.com',
+    password: 'assist123',
+    phone: '+82-10-8888-5555',
+    gender: 'male',
+    country: 'Korea',
+    device_fingerprint: 'seed-device-helper'
+  },
+  {
+    role: 'admin',
+    name: 'Console Admin',
+    nickname: 'OPS',
+    email: 'admin@tourlica.com',
+    password: 'control123',
+    phone: '+82-2-555-0000',
+    gender: 'prefer-not-to-say',
+    country: 'Korea',
+    device_fingerprint: 'seed-device-admin'
+  }
 ];
 
 const destinationInserts = [
@@ -71,6 +120,35 @@ const destinationInserts = [
   { city: '도쿄', country: '일본', summary: '전통과 미래적 풍경이 공존하는 메트로폴리스', best_season: '봄/가을', highlights: '스시 투어, 애니메이션 투어, 신주쿠 네온' },
   { city: '파리', country: '프랑스', summary: '예술과 카페 문화가 넘치는 낭만 여행지', best_season: '봄', highlights: '루브르, 세느강 크루즈, 파티세리 투어' }
 ];
+
+async function ensureAccountTable(client, schema) {
+  const table = `"${schema}".accounts`;
+  const alterStatements = [
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS nickname TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS phone TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS gender TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS country TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS device_fingerprint TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS interpreter_code TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`
+  ];
+
+  for (const statement of alterStatements) {
+    await client.query(statement);
+  }
+
+  await client.query(`ALTER TABLE ${table} ALTER COLUMN created_at SET DEFAULT NOW()`);
+  await client.query(`UPDATE ${table} SET created_at = NOW() WHERE created_at IS NULL`);
+  await client.query(`ALTER TABLE ${table} ALTER COLUMN created_at SET NOT NULL`);
+
+  await client.query(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS accounts_role_check`);
+  await client.query(
+    `ALTER TABLE ${table} ADD CONSTRAINT accounts_role_check CHECK (role IN ('tourist', 'interpreter', 'helper', 'admin'))`
+  );
+
+  await client.query(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS accounts_interpreter_code_key`);
+  await client.query(`ALTER TABLE ${table} ADD CONSTRAINT accounts_interpreter_code_key UNIQUE (interpreter_code)`);
+}
 
 async function seed() {
   const client = await pool.connect();
@@ -92,12 +170,34 @@ async function seed() {
     // Create tables with explicit schema qualification
     const schemaSql = getSchemaSql(schema);
     await client.query(schemaSql);
+    await ensureAccountTable(client, schema);
     await Promise.all(
       accountInserts.map((acct) =>
         client.query(
-          `INSERT INTO accounts (role, name, email, password) VALUES ($1, $2, $3, $4)
-           ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role, name = EXCLUDED.name, password = EXCLUDED.password`,
-          [acct.role, acct.name, acct.email, acct.password]
+          `INSERT INTO accounts (role, name, nickname, email, password, phone, gender, country, device_fingerprint, interpreter_code)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (email) DO UPDATE SET
+             role = EXCLUDED.role,
+             name = EXCLUDED.name,
+             nickname = EXCLUDED.nickname,
+             password = EXCLUDED.password,
+             phone = EXCLUDED.phone,
+             gender = EXCLUDED.gender,
+             country = EXCLUDED.country,
+             device_fingerprint = EXCLUDED.device_fingerprint,
+             interpreter_code = EXCLUDED.interpreter_code`,
+          [
+            acct.role,
+            acct.name,
+            acct.nickname ?? null,
+            acct.email,
+            acct.password,
+            acct.phone ?? null,
+            acct.gender ?? null,
+            acct.country ?? null,
+            acct.device_fingerprint ?? null,
+            acct.interpreter_code ?? null
+          ]
         )
       )
     );
