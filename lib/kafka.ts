@@ -32,6 +32,10 @@ export function getKafkaConfig() {
   return baseConfig;
 }
 
+export function createKafkaInstance() {
+  return new Kafka(baseConfig);
+}
+
 function parseKafkaSsl(): boolean | undefined {
   if (!process.env.KAFKA_SSL) {
     return undefined;

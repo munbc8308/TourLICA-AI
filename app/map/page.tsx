@@ -65,6 +65,7 @@ export default function MapPage() {
 
   const [account, setAccount] = useState<AccountProfile | null>(null);
   const [center, setCenter] = useState(defaultCenter);
+  const [selfLocation, setSelfLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [matchStage, setMatchStage] = useState<MatchStage>('idle');
   const [matchRole, setMatchRole] = useState<MatchRole | null>(null);
@@ -110,12 +111,15 @@ export default function MapPage() {
     }
   }, []);
 
+
   useEffect(() => {
     if (!isLoaded || !navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCenter(location);
+        setSelfLocation(location);
         setLocationError(null);
       },
       () => {
@@ -220,6 +224,28 @@ export default function MapPage() {
       setMatchRole(null);
     }
   }, [assignmentPerspective, account?.id, isTourist, matchStage]);
+
+  useEffect(() => {
+    if (!isTourist || !account?.id) return;
+
+    const source = new EventSource(`/api/match/stream?accountId=${account.id}`);
+    source.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload?.type === 'match_response' && payload.touristAccountId === account.id) {
+          fetchAssignmentSnapshot();
+        }
+      } catch (error) {
+        console.warn('match_response parse 오류', error);
+      }
+    };
+
+    source.onerror = () => source.close();
+
+    return () => {
+      source.close();
+    };
+  }, [isTourist, account?.id, fetchAssignmentSnapshot]);
 
   const handleMeetingArrival = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
@@ -432,6 +458,7 @@ export default function MapPage() {
       if (cancelled) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          setSelfLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           fetch('/api/match/movements', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -587,7 +614,7 @@ export default function MapPage() {
       }
 
       setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
-      setServiceMessage('매칭을 수락했습니다. 관광객에게 연결 알림을 보내는 중입니다.');
+      setServiceMessage('관광객 위치로 이동하세요.');
       setActiveRequestId(null);
       await fetchAssignmentSnapshot();
     } catch (error) {
@@ -771,6 +798,9 @@ export default function MapPage() {
                 options={{ disableDefaultUI: true, zoomControl: true }}
               >
                 {!serviceRole && !activeAssignment && <Marker position={center} title="현재 위치" />}
+                {selfLocation && serviceRole && (
+                  <Marker position={selfLocation} title="내 위치" label="나" />
+                )}
                 {activeAssignment && activeAssignment.latitude && activeAssignment.longitude && (
                   <Marker
                     position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}

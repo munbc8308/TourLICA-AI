@@ -34,6 +34,7 @@ docker compose up -d redpanda
 - `app/api/match/assignment` – 매칭된 관광객/통역사 조합 정보를 반환
 - `app/api/match/movements` – 15초 간격 위치 데이터 저장/조회
 - `app/api/match/meeting` – 통역사/도우미의 만남 확인 요청, 관광객의 최종 확인/완료 처리
+- `app/api/match/stream` – Kafka `match_response` 이벤트를 SSE로 전달
 - `app/signup/` – 역할별 회원가입 선택 화면과 세부 폼
 - `app/map/` – Google Maps 기반 지도 UI 샘플
 - `public/` – 파비콘 및 정적 자산
