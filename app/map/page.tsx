@@ -1003,6 +1003,18 @@ export default function MapPage() {
                   ))}
               </GoogleMap>
             )}
+            <div className="map-controls">
+              <button
+                type="button"
+                onClick={() => {
+                  const location = userMarkerPosition ?? selfLocation ?? center;
+                  setCenter(location);
+                  setMapZoom(15);
+                }}
+              >
+                내 위치로 이동
+              </button>
+            </div>
             {matchStage === 'waiting' && isTourist && (
               <div className="map-ripple" aria-hidden>
                 <span />

@@ -481,6 +481,8 @@ main {
 .map-brand {
   font-weight: 700;
   letter-spacing: 0.05em;
+  font-size: 1.1rem;
+  text-transform: uppercase;
 }
 
 .nav-toggle {
@@ -496,8 +498,18 @@ main {
 .map-nav-role {
   font-size: 0.85rem;
   color: var(--muted);
+  text-align: right;
+  flex: 1;
 }
 
+.map-nav .map-brand {
+  flex: 1;
+  text-align: center;
+}
+
+.map-nav .map-nav-role {
+  flex: 1;
+}
 .map-drawer {
   position: fixed;
   top: 64px;
@@ -580,6 +592,25 @@ main {
   border-radius: 0;
   position: relative;
   overflow: hidden;
+}
+
+.map-controls {
+  position: absolute;
+  bottom: 5rem;
+  left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.map-controls button {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(2, 6, 23, 0.7);
+  color: var(--fg);
+  cursor: pointer;
 }
 
 .map-panel {
@@ -751,18 +782,17 @@ main {
 
 @media (max-width: 960px) {
   .map-panel {
-    position: static;
+    bottom: 1rem;
+    top: auto;
+    right: 50%;
+    transform: translateX(50%);
     width: calc(100% - 2rem);
-    margin: 1rem auto;
-  }
-
-  .map-canvas {
-    height: calc(100vh - 64px);
   }
 
   .map-match-controls {
     width: calc(100% - 2rem);
-    bottom: 1rem;
+    bottom: auto;
+    top: 1rem;
   }
 
   .match-choice {
