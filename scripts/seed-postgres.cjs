@@ -223,6 +223,7 @@ async function seed() {
          ADD COLUMN IF NOT EXISTS meeting_status_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
     );
     await ensureAccountTable(client, schema);
+    await client.query('TRUNCATE TABLE match_movements, match_assignments, match_requests, destinations, accounts RESTART IDENTITY CASCADE');
     await Promise.all(
       accountInserts.map((acct) =>
         client.query(
