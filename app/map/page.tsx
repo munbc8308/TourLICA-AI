@@ -94,6 +94,7 @@ export default function MapPage() {
   const [profileInfo, setProfileInfo] = useState<AccountDetails | null>(null);
   const [matchHistory, setMatchHistory] = useState<MatchAssignment[]>([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
 
   const serviceRole = isServiceRole(account?.role) ? (account?.role as MatchRole) : null;
   const isTourist = !account || account.role === 'tourist';
@@ -127,6 +128,13 @@ export default function MapPage() {
       setMeetingPromptDismissedVersion(null);
     }
   }, [activeAssignment, activeAssignment?.meetingStatus]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth < 768) {
+      setPanelCollapsed(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -273,6 +281,13 @@ export default function MapPage() {
       setMapZoom(15);
     }
   }, [pendingRequests, serviceRole, activeAssignment, activeRequestId]);
+
+  const recenterToSelf = useCallback(() => {
+    const fallback = { ...defaultCenter };
+    const coords = selfLocation ?? userLocationRef.current ?? fallback;
+    setCenter(coords);
+    setMapZoom(15);
+  }, [selfLocation]);
 
   useEffect(() => {
     if (!isTourist) {
@@ -892,7 +907,7 @@ export default function MapPage() {
         <button type="button" className="nav-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label="메뉴 열기">
           ☰
         </button>
-        <div className="map-brand">TourLICA 이동 제어</div>
+        <div className="map-brand">TOURLICA</div>
         <div className="map-nav-role">{serviceRole ? '통역사/도우미 모드' : '관광객 모드'}</div>
       </header>
       <div className={`map-drawer ${menuOpen ? 'open' : ''}`}>
@@ -958,118 +973,123 @@ export default function MapPage() {
             {!isLoaded ? (
               <div className="map-status">지도를 불러오는 중...</div>
             ) : (
-              <GoogleMap
-                mapContainerStyle={containerStyle}
-                center={center}
-                zoom={mapZoom}
-                options={{ disableDefaultUI: true, zoomControl: true }}
-              >
-                {userMarkerPosition && <Marker position={userMarkerPosition} title="내 위치" label="나" />}
-                {activeAssignment && activeAssignment.latitude && activeAssignment.longitude && (
-                  <Marker
-                    position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
-                    title="관광객 위치"
-                    label="관광객"
-                  />
-                )}
-                {movementPath.length > 0 && (
-                  <Marker
-                    position={{
-                      lat: movementPath[movementPath.length - 1].latitude,
-                      lng: movementPath[movementPath.length - 1].longitude
-                    }}
-                    title="통역사/도우미 위치"
-                    label="전문가"
-                  />
-                )}
-                {movementPath.length > 1 && (
-                  <Polyline
-                    path={movementPath.map((point) => ({ lat: point.latitude, lng: point.longitude }))}
-                    options={{
-                      strokeColor: '#38bdf8',
-                      strokeOpacity: 0.9,
-                      strokeWeight: 4
-                    }}
-                  />
-                )}
-                {!activeAssignment &&
-                  pendingRequests.map((request) => (
+              <>
+                <GoogleMap
+                  mapContainerStyle={containerStyle}
+                  center={center}
+                  zoom={mapZoom}
+                  options={{
+                    disableDefaultUI: false,
+                    zoomControl: true,
+                    streetViewControl: false,
+                    fullscreenControl: false
+                  }}
+                >
+                  {userMarkerPosition && <Marker position={userMarkerPosition} title="내 위치" label="나" />}
+                  {activeAssignment && activeAssignment.latitude && activeAssignment.longitude && (
                     <Marker
-                      key={request.id}
-                      position={{ lat: request.latitude, lng: request.longitude }}
-                      title={request.requesterName ?? 'Tourist request'}
-                      onClick={() => focusRequest(request)}
+                      position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
+                      title="관광객 위치"
+                      label="관광객"
                     />
-                  ))}
-              </GoogleMap>
+                  )}
+                  {movementPath.length > 0 && (
+                    <Marker
+                      position={{
+                        lat: movementPath[movementPath.length - 1].latitude,
+                        lng: movementPath[movementPath.length - 1].longitude
+                      }}
+                      title="통역사/도우미 위치"
+                      label="전문가"
+                    />
+                  )}
+                  {movementPath.length > 1 && (
+                    <Polyline
+                      path={movementPath.map((point) => ({ lat: point.latitude, lng: point.longitude }))}
+                      options={{
+                        strokeColor: '#38bdf8',
+                        strokeOpacity: 0.9,
+                        strokeWeight: 4,
+                        geodesic: true
+                      }}
+                    />
+                  )}
+                </GoogleMap>
+                <div className="map-controls">
+                  <button type="button" onClick={recenterToSelf}>
+                    내 위치로 이동
+                  </button>
+                </div>
+                {matchStage === 'waiting' && isTourist && (
+                  <div className="map-ripple" aria-hidden>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                )}
+                <div className="map-match-controls">
+                  {isTourist ? renderTouristControls() : renderServiceControls()}
+                  {isTourist && statusMessage && <p className="match-status">{statusMessage}</p>}
+                  {isTourist && matchError && <p className="form-error">{matchError}</p>}
+                  {!isTourist && serviceMessage && <p className="match-status">{serviceMessage}</p>}
+                  {!isTourist && serviceError && <p className="form-error">{serviceError}</p>}
+                </div>
+              </>
             )}
-            <div className="map-controls">
-              <button
-                type="button"
-                onClick={() => {
-                  const location = userMarkerPosition ?? selfLocation ?? center;
-                  setCenter(location);
-                  setMapZoom(15);
-                }}
-              >
-                내 위치로 이동
-              </button>
-            </div>
-            {matchStage === 'waiting' && isTourist && (
-              <div className="map-ripple" aria-hidden>
-                <span />
-                <span />
-                <span />
-              </div>
-            )}
-            <div className="map-match-controls">
-              {isTourist ? renderTouristControls() : renderServiceControls()}
-              {isTourist && statusMessage && <p className="match-status">{statusMessage}</p>}
-              {isTourist && matchError && <p className="form-error">{matchError}</p>}
-              {!isTourist && serviceMessage && <p className="match-status">{serviceMessage}</p>}
-              {!isTourist && serviceError && <p className="form-error">{serviceError}</p>}
-            </div>
           </div>
         )}
-        <aside className="map-panel">
-          <h1>TourLICA 지도</h1>
-          {isTourist ? (
+        <aside className={`map-panel ${panelCollapsed ? 'collapsed' : ''}`}>
+          <button
+            type="button"
+            className="panel-toggle"
+            onClick={() => setPanelCollapsed((prev) => !prev)}
+            aria-label="설명 패널 토글"
+          >
+            {panelCollapsed ? '설명 보기' : '숨기기'}
+          </button>
+          {!panelCollapsed && (
             <>
-              <p>사용자의 현재 위치를 기반으로 반경 내 통역사/도우미를 시각화합니다.</p>
-          {locationError && <p className="map-alert">{locationError}</p>}
-          <ul>
-            <li>지도 하단에서 통역사 · 도우미 중 원하는 지원 유형을 골라 Kafka 매칭 이벤트를 발행합니다.</li>
-            <li>파형 애니메이션은 주변 반경에 요청이 브로드캐스트되고 있음을 시각화합니다.</li>
-            <li>매칭 취소 버튼을 누르면 즉시 Kafka에 취소 이벤트가 전송됩니다.</li>
-          </ul>
-          {activeAssignment && (
-            <div className="assignment-panel">
-              <p>
-                현재 <strong>{activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole]}</strong> 님과 매칭되었습니다.
-              </p>
-              <p className="match-status">매칭 시각: {new Date(activeAssignment.matchedAt).toLocaleTimeString()}</p>
-            </div>
+              <h1>TourLICA 지도</h1>
+              {isTourist ? (
+                <>
+                  <p>사용자의 현재 위치를 기반으로 반경 내 통역사/도우미를 시각화합니다.</p>
+                  {locationError && <p className="map-alert">{locationError}</p>}
+                  <ul>
+                    <li>지도 하단에서 통역사 · 도우미 중 원하는 지원 유형을 골라 Kafka 매칭 이벤트를 발행합니다.</li>
+                    <li>파형 애니메이션은 주변 반경에 요청이 브로드캐스트되고 있음을 시각화합니다.</li>
+                    <li>매칭 취소 버튼을 누르면 즉시 Kafka에 취소 이벤트가 전송됩니다.</li>
+                  </ul>
+                  {activeAssignment && (
+                    <div className="assignment-panel">
+                      <p>
+                        현재 <strong>{activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole]}</strong>{' '}
+                        님과 매칭되었습니다.
+                      </p>
+                      <p className="match-status">매칭 시각: {new Date(activeAssignment.matchedAt).toLocaleTimeString()}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p>Kafka 대기열에서 관광객 요청을 수신해 원하는 건을 매칭할 수 있습니다.</p>
+                  <ul>
+                    <li>새 요청이 들어오면 지도 중심이 관광객 위치로 이동합니다.</li>
+                    <li>요청 카드에서 매칭을 수락하면 이동 경로 기록이 시작됩니다.</li>
+                    <li>만남을 확인하면 매칭 상태가 완료로 업데이트됩니다.</li>
+                  </ul>
+                  {activeAssignment && (
+                    <div className="assignment-panel">
+                      <p>
+                        <strong>{activeAssignment.touristName ?? '관광객'}</strong>님과 이동 경로를 공유 중입니다.
+                      </p>
+                      <p className="match-status">위치를 3초 간격으로 업데이트하고 있습니다.</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           )}
-        </>
-      ) : (
-        <>
-          <p>Kafka 대기열에서 관광객 요청을 수신해 원하는 건을 매칭할 수 있습니다.</p>
-          <ul>
-            <li>새 요청이 들어오면 지도 중심이 관광객 위치로 이동합니다.</li>
-            <li>마커를 클릭하면 상세 정보를 확인하고, 하단에서 매칭을 수락할 수 있습니다.</li>
-            <li>매칭을 수락하면 매칭 이력 테이블에 관광객/통역사/도우미 정보가 기록됩니다.</li>
-          </ul>
-          {activeAssignment && (
-            <div className="assignment-panel">
-              <p>
-                <strong>{activeAssignment.touristName ?? '관광객'}</strong>님과 이동 경로를 공유 중입니다.
-              </p>
-              <p className="match-status">위치를 15초 간격으로 업데이트하고 있습니다.</p>
-            </div>
-          )}
-        </>
-      )}
-      </aside>
+        </aside>
       </div>
     </main>
   );
