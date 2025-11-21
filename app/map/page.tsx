@@ -36,6 +36,8 @@ interface MatchAssignment {
   latitude: number | null;
   longitude: number | null;
   matchedAt: string;
+  meetingStatus: 'enroute' | 'awaiting_confirmation' | 'completed';
+  meetingStatusUpdatedAt: string;
 }
 
 interface MovementPoint {
@@ -76,11 +78,24 @@ export default function MapPage() {
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [activeAssignment, setActiveAssignment] = useState<MatchAssignment | null>(null);
   const [movementPath, setMovementPath] = useState<MovementPoint[]>([]);
+  const [meetingPromptDismissedVersion, setMeetingPromptDismissedVersion] = useState<string | null>(null);
 
   const serviceRole = isServiceRole(account?.role) ? (account?.role as MatchRole) : null;
   const isTourist = !account || account.role === 'tourist';
   const assignmentPerspective = serviceRole ? 'responder' : isTourist ? 'tourist' : null;
   const assignmentId = activeAssignment?.id ?? null;
+  const shouldShowMeetingPrompt =
+    Boolean(
+      activeAssignment &&
+        activeAssignment.meetingStatus === 'awaiting_confirmation' &&
+        activeAssignment.meetingStatusUpdatedAt !== meetingPromptDismissedVersion
+    );
+
+  useEffect(() => {
+    if (!activeAssignment || activeAssignment.meetingStatus !== 'awaiting_confirmation') {
+      setMeetingPromptDismissedVersion(null);
+    }
+  }, [activeAssignment, activeAssignment?.meetingStatus]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -206,6 +221,50 @@ export default function MapPage() {
     }
   }, [assignmentPerspective, account?.id, isTourist, matchStage]);
 
+  const handleMeetingArrival = useCallback(async () => {
+    if (!activeAssignment || !account?.id) return;
+    try {
+      const response = await fetch('/api/match/meeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignmentId: activeAssignment.id, accountId: account.id, action: 'arrived' })
+      });
+      if (!response.ok) {
+        throw new Error('arrival failed');
+      }
+      setMeetingPromptDismissedVersion(null);
+      await fetchAssignmentSnapshot();
+      setServiceMessage('관광객에게 만남 확인을 요청했습니다.');
+    } catch (error) {
+      console.error('만남 확인 요청 실패', error);
+      setServiceError('만남 확인 요청을 전송하지 못했습니다.');
+    }
+  }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
+
+  const handleMeetingConfirm = useCallback(async () => {
+    if (!activeAssignment || !account?.id) return;
+    try {
+      const response = await fetch('/api/match/meeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignmentId: activeAssignment.id, accountId: account.id, action: 'confirm' })
+      });
+      if (!response.ok) {
+        throw new Error('confirm failed');
+      }
+      await fetchAssignmentSnapshot();
+      setMeetingPromptDismissedVersion(null);
+    } catch (error) {
+      console.error('만남 확인 실패', error);
+      setMatchError('만남을 확정하지 못했습니다. 잠시 후 다시 시도하세요.');
+    }
+  }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
+
+  const handleMeetingPromptDismiss = useCallback(() => {
+    if (!activeAssignment) return;
+    setMeetingPromptDismissedVersion(activeAssignment.meetingStatusUpdatedAt);
+  }, [activeAssignment]);
+
   useEffect(() => {
     if (!assignmentPerspective || !account?.id) {
       setActiveAssignment(null);
@@ -280,6 +339,7 @@ export default function MapPage() {
   useEffect(() => {
     if (!assignmentId) {
       setMovementPath([]);
+      setMeetingPromptDismissedVersion(null);
       return;
     }
 
@@ -557,11 +617,25 @@ export default function MapPage() {
           <p>
             {responderName} 님이 이동 중입니다. 위치가 갱신되면 지도에 경로가 표시됩니다.
           </p>
-          <div className="match-actions">
-            <button type="button" onClick={() => fetchAssignmentSnapshot()}>
-              경로 새로고침
-            </button>
-          </div>
+          {shouldShowMeetingPrompt ? (
+            <div className="meeting-prompt">
+              <p>{responderName} 님이 도착했다고 알려왔습니다. 만남을 확인해 주세요.</p>
+              <div className="match-actions">
+                <button type="button" onClick={handleMeetingConfirm}>
+                  확인
+                </button>
+                <button type="button" className="outline" onClick={handleMeetingPromptDismiss}>
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="match-actions">
+              <button type="button" onClick={() => fetchAssignmentSnapshot()}>
+                경로 새로고침
+              </button>
+            </div>
+          )}
         </>
       );
     }
@@ -593,8 +667,15 @@ export default function MapPage() {
             <p className="match-status">
               매칭 시각 {new Date(activeAssignment.matchedAt).toLocaleTimeString()}
             </p>
+            {activeAssignment.meetingStatus === 'awaiting_confirmation' && <p className="match-status">관광객의 만남 확인을 기다리고 있습니다.</p>}
+            {activeAssignment.meetingStatus === 'completed' && <p className="match-status">만남이 완료되었습니다.</p>}
           </div>
           <div className="match-actions">
+            {activeAssignment.meetingStatus !== 'completed' && (
+              <button type="button" onClick={handleMeetingArrival} disabled={accepting}>
+                만남 요청
+              </button>
+            )}
             <button type="button" className="outline" onClick={() => fetchAssignmentSnapshot()} disabled={accepting}>
               새로 고침
             </button>

@@ -3,6 +3,8 @@ import { query } from './db';
 export type MatchRole = 'interpreter' | 'helper';
 export type MatchRequestStatus = 'pending' | 'cancelled' | 'matched';
 
+export type MeetingStatus = 'enroute' | 'awaiting_confirmation' | 'completed';
+
 export interface MatchAssignment {
   id: number;
   requestId: number | null;
@@ -14,6 +16,8 @@ export interface MatchAssignment {
   latitude: number | null;
   longitude: number | null;
   matchedAt: string;
+  meetingStatus: MeetingStatus;
+  meetingStatusUpdatedAt: string;
 }
 
 export interface MatchRequest {
@@ -227,7 +231,9 @@ export async function getAssignmentForAccount(args: {
       ma.responder_role AS "responderRole",
       ma.latitude,
       ma.longitude,
-      ma.matched_at AS "matchedAt"
+      ma.matched_at AS "matchedAt",
+      ma.meeting_status AS "meetingStatus",
+      ma.meeting_status_updated_at AS "meetingStatusUpdatedAt"
     FROM match_assignments ma
     LEFT JOIN accounts tourist ON tourist.id = ma.tourist_account_id
     LEFT JOIN accounts responder ON responder.id = ma.responder_account_id
@@ -235,6 +241,45 @@ export async function getAssignmentForAccount(args: {
     ORDER BY ma.matched_at DESC
     LIMIT 1`,
     [args.accountId]
+  );
+
+  return rows[0];
+}
+
+export async function requestMeetingConfirmation(args: { assignmentId: number; responderAccountId: number }): Promise<MatchAssignment | undefined> {
+  return updateMeetingStatus(args.assignmentId, args.responderAccountId, 'responder_account_id', 'awaiting_confirmation');
+}
+
+export async function confirmMeeting(args: { assignmentId: number; touristAccountId: number }): Promise<MatchAssignment | undefined> {
+  return updateMeetingStatus(args.assignmentId, args.touristAccountId, 'tourist_account_id', 'completed');
+}
+
+async function updateMeetingStatus(
+  assignmentId: number,
+  accountId: number,
+  ownershipColumn: 'responder_account_id' | 'tourist_account_id',
+  status: MeetingStatus
+): Promise<MatchAssignment | undefined> {
+  const rows = await query<MatchAssignment>(
+    `UPDATE match_assignments ma
+       SET meeting_status = $1,
+           meeting_status_updated_at = NOW()
+     WHERE ma.id = $2
+       AND ma.${ownershipColumn} = $3
+     RETURNING
+       ma.id,
+      ma.request_id AS "requestId",
+      ma.tourist_account_id AS "touristAccountId",
+      (SELECT name FROM accounts WHERE id = ma.tourist_account_id) AS "touristName",
+      ma.responder_account_id AS "responderAccountId",
+      (SELECT name FROM accounts WHERE id = ma.responder_account_id) AS "responderName",
+      ma.responder_role AS "responderRole",
+      ma.latitude,
+      ma.longitude,
+      ma.matched_at AS "matchedAt",
+      ma.meeting_status AS "meetingStatus",
+      ma.meeting_status_updated_at AS "meetingStatusUpdatedAt"`,
+    [status, assignmentId, accountId]
   );
 
   return rows[0];

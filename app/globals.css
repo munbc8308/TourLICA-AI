@@ -518,6 +518,17 @@ main {
   background: rgba(15, 23, 42, 0.5);
 }
 
+.meeting-prompt {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
 .map-match-controls {
   position: absolute;
   bottom: 1.5rem;

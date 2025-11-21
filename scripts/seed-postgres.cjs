@@ -92,7 +92,9 @@ CREATE TABLE IF NOT EXISTS "${schema}".match_assignments (
   responder_role TEXT NOT NULL CHECK (responder_role IN ('interpreter', 'helper')),
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
-  matched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  matched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  meeting_status TEXT NOT NULL CHECK (meeting_status IN ('enroute', 'awaiting_confirmation', 'completed')) DEFAULT 'enroute',
+  meeting_status_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS "${schema}".match_movements (
@@ -212,6 +214,14 @@ async function seed() {
     // Create tables with explicit schema qualification
     const schemaSql = getSchemaSql(schema);
     await client.query(schemaSql);
+    await client.query(
+      `ALTER TABLE match_assignments
+         ADD COLUMN IF NOT EXISTS meeting_status TEXT NOT NULL DEFAULT 'enroute'`
+    );
+    await client.query(
+      `ALTER TABLE match_assignments
+         ADD COLUMN IF NOT EXISTS meeting_status_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+    );
     await ensureAccountTable(client, schema);
     await Promise.all(
       accountInserts.map((acct) =>
