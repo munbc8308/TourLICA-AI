@@ -429,7 +429,7 @@ export default function MapPage() {
     }
 
     loadMovements();
-    const interval = window.setInterval(loadMovements, 15000);
+    const interval = window.setInterval(loadMovements, 3000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
@@ -476,7 +476,7 @@ export default function MapPage() {
     };
 
     sendPosition();
-    const interval = window.setInterval(sendPosition, 15000);
+    const interval = window.setInterval(sendPosition, 3000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);

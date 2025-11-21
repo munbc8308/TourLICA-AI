@@ -46,3 +46,4 @@
 - **매칭 대기 복원**: 관광객이 매칭 요청을 보낼 때마다 `match_requests` 테이블에 즉시 기록하고, `/api/match/status`로 최근 미완료 요청을 조회해 새로고침해도 기다리는 상태를 유지하도록 Map 페이지 로직을 보강했습니다. 취소 시에는 해당 레코드의 상태를 `cancelled`로 업데이트해 중복 호출을 방지합니다.
 - **실시간 이동 경로**: 매칭이 성사되면 `/api/match/assignment`로 관광객·통역사 정보를 동기화하고, `match_movements` 테이블에 15초 간격 위치 히스토리를 기록합니다. `/api/match/movements` API를 통해 양측 지도에서 동일한 Polyline 경로와 현재 위치를 볼 수 있으며, 수락 이후에도 새로고침 시 경로가 복원됩니다.
 - **만남 확정 흐름**: 통역사·도우미가 도착하면 `/api/match/meeting`으로 `meeting_status`를 `awaiting_confirmation`으로 변경하고, 관광객은 확인/취소 UI를 통해 최종 `completed` 상태를 확정합니다. 모든 상태 변경은 `match_assignments`에 타임스탬프와 위치까지 함께 저장되어 재접속 시에도 동일하게 복원됩니다.
+- **Kafka 스트림 통합**: 매칭 수락 시 `match_response` 이벤트를 Kafka에 게시하고, 관광객 클라이언트는 `/api/match/stream` SSE로 이를 구독해 즉시 경로·상태를 갱신합니다. 통역사/도우미는 매칭 이후 Kafka 폴링을 중단하고 관광객 위치, 자기 위치 마커, 만남 확인 버튼만 유지해 현장 이동 단계를 직관적으로 파악할 수 있습니다.
