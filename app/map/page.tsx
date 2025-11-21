@@ -132,23 +132,40 @@ export default function MapPage() {
   useEffect(() => {
     if (!isLoaded || typeof navigator === 'undefined' || !navigator.geolocation) return;
 
+    const updateLocation = (coords: GeolocationCoordinates) => {
+      const location = { lat: coords.latitude, lng: coords.longitude };
+      setSelfLocation(location);
+      userLocationRef.current = location;
+      setLocationError(null);
+      if (!centerInitializedRef.current) {
+        setCenter(location);
+        setMapZoom(15);
+        centerInitializedRef.current = true;
+      }
+    };
+
+    const requestOnce = (highAccuracy: boolean) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => updateLocation(pos.coords),
+        () => {
+          setLocationError('현재 위치를 가져올 수 없어 기본 위치(서울 시청)를 표시합니다.');
+        },
+        { enableHighAccuracy: highAccuracy, maximumAge: 0, timeout: 8000 }
+      );
+    };
+
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setSelfLocation(location);
-        userLocationRef.current = location;
-        setLocationError(null);
-        if (!centerInitializedRef.current) {
-          setCenter(location);
-          setMapZoom(15);
-          centerInitializedRef.current = true;
-        }
-      },
-      () => {
-        setLocationError('현재 위치를 가져올 수 없어 기본 위치(서울 시청)를 표시합니다.');
+      (pos) => updateLocation(pos.coords),
+      (error) => {
+        console.warn('watchPosition error', error);
+        // retry once with lower accuracy
+        requestOnce(false);
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
     );
+
+    // request at least once immediately to populate center
+    requestOnce(true);
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
