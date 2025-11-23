@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export default function AdminDashboard() {
+    const t = useTranslations('Admin');
     const [stats, setStats] = useState({
         totalUsers: 0,
         activeMatches: 0,
@@ -43,7 +45,7 @@ export default function AdminDashboard() {
                         <span className="material-icons">people</span>
                     </div>
                     <div className="stat-info">
-                        <h3>Total Users</h3>
+                        <h3>{t('totalUsers')}</h3>
                         <div className="value">{stats.totalUsers}</div>
                     </div>
                 </div>
@@ -52,7 +54,7 @@ export default function AdminDashboard() {
                         <span className="material-icons">handshake</span>
                     </div>
                     <div className="stat-info">
-                        <h3>Total Matches</h3>
+                        <h3>{t('totalMatches')}</h3>
                         <div className="value">{stats.totalMatches}</div>
                     </div>
                 </div>
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
                         <span className="material-icons">schedule</span>
                     </div>
                     <div className="stat-info">
-                        <h3>Active Matches</h3>
+                        <h3>{t('activeMatches')}</h3>
                         <div className="value">-</div>
                     </div>
                 </div>
@@ -69,10 +71,10 @@ export default function AdminDashboard() {
 
             <div className="table-container">
                 <div style={{ padding: '24px', borderBottom: '1px solid var(--admin-border)' }}>
-                    <h3 style={{ margin: 0 }}>Recent Activity</h3>
+                    <h3 style={{ margin: 0 }}>{t('recentActivity')}</h3>
                 </div>
                 <div style={{ padding: '24px', color: '#718096', textAlign: 'center' }}>
-                    Activity log coming soon...
+                    {t('activityLogComingSoon')}
                 </div>
             </div>
         </div>

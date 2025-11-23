@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import './admin.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const t = useTranslations('Admin');
     const pathname = usePathname();
     const router = useRouter();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -24,16 +26,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, [router]);
 
     const navItems = [
-        { label: 'Dashboard', href: '/admin', icon: 'dashboard' },
-        { label: 'User Management', href: '/admin/users', icon: 'group' },
-        { label: 'Match Management', href: '/admin/matches', icon: 'handshake' }
+        { label: t('dashboard'), href: '/admin', icon: 'dashboard' },
+        { label: t('users'), href: '/admin/users', icon: 'group' },
+        { label: t('matches'), href: '/admin/matches', icon: 'handshake' }
     ];
 
     return (
         <div className="admin-layout">
             <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
-                    <h1 className="logo">TourLICA <span>Admin</span></h1>
+                    <h1 className="logo">TourLICA <span>{t('admin')}</span></h1>
                     <button className="toggle-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                         {isSidebarOpen ? '«' : '»'}
                     </button>
@@ -43,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         {navItems.map((item) => (
                             <li key={item.href}>
                                 <Link
-                                    href={item.href}
+                                    href={item.href as any}
                                     className={pathname === item.href ? 'active' : ''}
                                 >
                                     <span className="material-icons">{item.icon}</span>
@@ -59,17 +61,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         router.push('/login');
                     }}>
                         <span className="material-icons">logout</span>
-                        {isSidebarOpen && <span>Logout</span>}
+                        {isSidebarOpen && <span>{t('logout')}</span>}
                     </button>
                 </div>
             </aside>
             <main className="admin-content">
                 <header className="admin-header">
                     <h2 className="page-title">
-                        {navItems.find(item => item.href === pathname)?.label || 'Dashboard'}
+                        {navItems.find(item => item.href === pathname)?.label || t('dashboard')}
                     </h2>
                     <div className="admin-profile">
-                        <span className="badge">Admin</span>
+                        <span className="badge">{t('admin')}</span>
                     </div>
                 </header>
                 <div className="content-wrapper">

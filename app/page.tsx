@@ -3,8 +3,10 @@
 import Image from 'next/image';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function HomePage() {
+  const t = useTranslations('Landing');
   const router = useRouter();
 
   useEffect(() => {
@@ -20,16 +22,16 @@ export default function HomePage() {
       <div className="landing-inner">
         <div className="logo-stack">
           <div className="logo-glow" />
-          <Image src="/tourLICA.png" alt="TourLICA 로고" width={220} height={220} priority />
-          <p className="eyebrow">Tour Logistics & Conversational Agent</p>
+          <Image src="/tourLICA.png" alt={t('logoAlt')} width={220} height={220} priority />
+          <p className="eyebrow">{t('eyebrow')}</p>
           <h1>TourLICA</h1>
-          <p className="tagline">유연한 여행 에이전트를 위한 초기 부팅 화면</p>
+          <p className="tagline">{t('tagline')}</p>
         </div>
         <div className="loading-area" role="status" aria-live="polite">
           <div className="loading-bar">
             <span className="loading-bar__fill" />
           </div>
-          <p>맞춤 여정 데이터를 불러오는 중...</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     </main>

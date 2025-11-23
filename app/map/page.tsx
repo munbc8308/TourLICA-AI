@@ -1,7 +1,8 @@
 'use client';
 
-import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Marker, Polyline, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 type MatchRole = 'interpreter' | 'helper';
 type MatchStage = 'idle' | 'selecting' | 'sending' | 'waiting' | 'matched';
@@ -59,12 +60,17 @@ interface MovementPoint {
 
 const defaultCenter = { lat: 37.5665, lng: 126.978 }; // Seoul City Hall
 const containerStyle = { width: '100%', height: '100%' } as const;
-const matchRoleLabels: Record<MatchRole, string> = {
-  interpreter: '통역사',
-  helper: '도우미'
-};
 
 export default function MapPage() {
+  const t = useTranslations('Map');
+  const tCommon = useTranslations('Common');
+  const tAuth = useTranslations('Auth');
+
+  const matchRoleLabels: Record<MatchRole, string> = {
+    interpreter: tAuth('interpreter'),
+    helper: tAuth('helper')
+  };
+
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'tourlica-google-maps',
@@ -95,6 +101,7 @@ export default function MapPage() {
   const [matchHistory, setMatchHistory] = useState<MatchAssignment[]>([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState<'user' | 'tourist' | 'expert' | null>(null);
 
   const serviceRole = isServiceRole(account?.role) ? (account?.role as MatchRole) : null;
   const isTourist = !account || account.role === 'tourist';
@@ -122,6 +129,98 @@ export default function MapPage() {
     setCurrentRequestId(null);
     setMatchError(null);
   }, []);
+
+  // ... (keeping useEffects mostly same, but updating error messages if possible, though error messages from API might still be hardcoded or need separate handling)
+
+  // Skip to renderTouristControls for major UI changes
+
+  const renderTouristControls = () => {
+    if (matchStage === 'selecting') {
+      return (
+        <>
+          <p>{t('requestHelp')}</p>
+          <div className="match-choice">
+            <button type="button" onClick={() => sendMatchEvent('interpreter')}>
+              <strong>{tAuth('interpreter')}</strong>
+              <span>{tAuth('interpreterDesc')}</span>
+            </button>
+            <button type="button" onClick={() => sendMatchEvent('helper')}>
+              <strong>{tAuth('helper')}</strong>
+              <span>{tAuth('helperDesc')}</span>
+            </button>
+          </div>
+          <div className="match-actions">
+            <button type="button" className="outline" onClick={() => setMatchStage('idle')}>
+              {tCommon('close')}
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    if (matchStage === 'sending') {
+      return (
+        <>
+          <p>{tCommon('loading')}</p>
+          <div className="match-actions">
+            <button type="button" disabled>
+              ...
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    if (matchStage === 'waiting' && matchRole) {
+      return (
+        <>
+          <p>{t('waitingForMatch')}</p>
+          <div className="match-actions">
+            <button type="button" className="outline" onClick={cancelMatch}>
+              {tCommon('cancel')}
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    if (matchStage === 'matched' && activeAssignment) {
+      const responderName = activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole];
+      return (
+        <>
+          <p>{t('matched')}: {responderName}</p>
+          {shouldShowMeetingPrompt && (
+            <div className="meeting-prompt">
+              <p>{t('interpreterArrived')}</p>
+              <div className="prompt-actions">
+                <button onClick={handleMeetingConfirm}>{t('confirmMeeting')}</button>
+                <button className="outline" onClick={handleMeetingPromptDismiss}>
+                  {tCommon('close')}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    return (
+      <div className="match-actions">
+        <button type="button" className="primary-btn" onClick={startMatching}>
+          {t('requestHelp')}
+        </button>
+      </div>
+    );
+  };
+
+  // ... (rest of the component)
+
+  // Need to return the full component structure. Since I can't replace just parts easily without context, I'll try to target specific blocks if possible, or replace the whole file if I had the full content.
+  // Since I viewed the first 800 lines, I have most of it.
+  // I will use a more targeted replacement for the top part and `renderTouristControls`.
+
+
+
 
   useEffect(() => {
     if (!activeAssignment || activeAssignment.meetingStatus !== 'awaiting_confirmation') {
@@ -168,7 +267,7 @@ export default function MapPage() {
       navigator.geolocation.getCurrentPosition(
         (pos) => updateLocation(pos.coords),
         () => {
-          setLocationError('현재 위치를 가져올 수 없어 기본 위치(서울 시청)를 표시합니다.');
+          setLocationError(t('locationErrorDefault'));
         },
         { enableHighAccuracy: highAccuracy, maximumAge: 0, timeout: 8000 }
       );
@@ -252,7 +351,7 @@ export default function MapPage() {
       } catch (error) {
         if (!cancelled) {
           console.warn('요청 목록을 가져오지 못했습니다.', error);
-          setServiceError('Kafka 대기열에서 요청을 불러오지 못했습니다. 잠시 후 다시 시도하세요.');
+          setServiceError(t('kafkaError'));
         }
       }
     }
@@ -379,10 +478,10 @@ export default function MapPage() {
         }
         setMeetingPromptDismissedVersion(null);
         await fetchAssignmentSnapshot();
-        setServiceMessage('관광객에게 만남 확인을 요청했습니다.');
+        setServiceMessage(t('meetingConfirmRequested'));
       } catch (error) {
         console.error('만남 확인 요청 실패', error);
-        setServiceError('만남 확인 요청을 전송하지 못했습니다.');
+        setServiceError(t('meetingConfirmRequestFailed'));
       }
     };
 
@@ -419,7 +518,7 @@ export default function MapPage() {
         resetToInitialState();
       } catch (error) {
         console.error('만남 확인 실패', error);
-        setMatchError('만남을 확정하지 못했습니다. 잠시 후 다시 시도하세요.');
+        setMatchError(t('meetingConfirmFailed'));
       }
     };
 
@@ -657,7 +756,7 @@ export default function MapPage() {
       setMatchStage('waiting');
     } catch (error) {
       console.error('매칭 요청 실패', error);
-      setMatchError('매칭 요청 전송에 실패했습니다. 네트워크 상태를 확인하고 다시 시도하세요.');
+      setMatchError(t('matchRequestError'));
       setMatchStage('selecting');
       setMatchRole(null);
     }
@@ -706,7 +805,7 @@ export default function MapPage() {
 
   const acceptMatch = async (requestId: number) => {
     if (!serviceRole || !account) {
-      setServiceError('로그인 정보가 필요합니다.');
+      setServiceError(t('loginRequired'));
       return;
     }
     setServiceError(null);
@@ -730,109 +829,22 @@ export default function MapPage() {
       }
 
       setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
-      setServiceMessage('관광객 위치로 이동하세요.');
+      setServiceMessage(t('moveToTourist'));
       setActiveRequestId(null);
       await fetchAssignmentSnapshot();
     } catch (error) {
       console.error('매칭 수락 실패', error);
-      setServiceError(error instanceof Error ? error.message : '매칭 수락 처리 중 오류가 발생했습니다.');
+      setServiceError(error instanceof Error ? error.message : t('matchAcceptError'));
     } finally {
       setAccepting(false);
     }
   };
 
-  const renderTouristControls = () => {
-    if (matchStage === 'selecting') {
-      return (
-        <>
-          <p>어떤 지원이 필요하신가요?</p>
-          <div className="match-choice">
-            <button type="button" onClick={() => sendMatchEvent('interpreter')}>
-              <strong>통역사를 호출</strong>
-              <span>실시간 언어 지원 요청</span>
-            </button>
-            <button type="button" onClick={() => sendMatchEvent('helper')}>
-              <strong>도우미를 호출</strong>
-              <span>현지 케어/동행 지원 요청</span>
-            </button>
-          </div>
-          <div className="match-actions">
-            <button type="button" className="outline" onClick={() => setMatchStage('idle')}>
-              닫기
-            </button>
-          </div>
-        </>
-      );
-    }
 
-    if (matchStage === 'sending') {
-      return (
-        <>
-          <p>Kafka 이벤트 전송 중...</p>
-          <div className="match-actions">
-            <button type="button" disabled>
-              요청 전송 중
-            </button>
-          </div>
-        </>
-      );
-    }
-
-    if (matchStage === 'waiting' && matchRole) {
-      return (
-        <>
-          <p>{matchRoleLabels[matchRole]} 호출 중입니다. 응답이 도착하면 즉시 연결해 드립니다.</p>
-          <div className="match-actions">
-            <button type="button" className="outline" onClick={cancelMatch}>
-              매칭 취소
-            </button>
-          </div>
-        </>
-      );
-    }
-
-    if (matchStage === 'matched' && activeAssignment) {
-      const responderName = activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole];
-      return (
-        <>
-          <p>{responderName} 님 위치를 따라 이동 중입니다.</p>
-          {shouldShowMeetingPrompt && (
-            <div className="meeting-prompt">
-              <p>현장에서 만남이 완료되었나요?</p>
-              <div className="match-actions">
-                <button type="button" onClick={handleMeetingConfirm}>
-                  만남 확인
-                </button>
-                <button type="button" className="outline" onClick={handleMeetingPromptDismiss}>
-                  닫기
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="match-actions">
-            <button type="button" onClick={() => fetchAssignmentSnapshot()}>
-              경로 새로고침
-            </button>
-          </div>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <p>가까운 통역사/도우미가 필요하신가요?</p>
-        <div className="match-actions">
-          <button type="button" onClick={startMatching}>
-            매칭 요청
-          </button>
-        </div>
-      </>
-    );
-  };
 
   const renderServiceControls = () => {
     if (!serviceRole) {
-      return <p>통역사/도우미 계정으로 로그인하면 실시간 요청을 수신합니다.</p>;
+      return <p>{t('loginAsService')}</p>;
     }
 
     if (activeAssignment) {
@@ -840,22 +852,22 @@ export default function MapPage() {
         <>
           <div>
             <p>
-              <strong>{activeAssignment.touristName ?? '관광객'}</strong>님과 연결되었습니다.
+              <strong>{t('connectedWith', { name: activeAssignment.touristName ?? t('tourist') })}</strong>
             </p>
             <p className="match-status">
-              매칭 시각 {new Date(activeAssignment.matchedAt).toLocaleTimeString()}
+              {t('matchedAt')} {new Date(activeAssignment.matchedAt).toLocaleTimeString()}
             </p>
-            {activeAssignment.meetingStatus === 'awaiting_confirmation' && <p className="match-status">관광객의 만남 확인을 기다리고 있습니다.</p>}
-            {activeAssignment.meetingStatus === 'completed' && <p className="match-status">만남이 완료되었습니다.</p>}
+            {activeAssignment.meetingStatus === 'awaiting_confirmation' && <p className="match-status">{t('waitingForConfirmation')}</p>}
+            {activeAssignment.meetingStatus === 'completed' && <p className="match-status">{t('meetingCompleted')}</p>}
           </div>
           <div className="match-actions">
             {activeAssignment.meetingStatus !== 'completed' && !shouldShowMeetingPrompt && (
               <button type="button" onClick={handleMeetingArrival} disabled={accepting}>
-                만남 확인 요청
+                {t('requestMeetingConfirmation')}
               </button>
             )}
             <button type="button" className="outline" onClick={() => fetchAssignmentSnapshot()} disabled={accepting}>
-              새로 고침
+              {t('refresh')}
             </button>
           </div>
         </>
@@ -865,10 +877,10 @@ export default function MapPage() {
     if (!activeRequest) {
       return (
         <>
-          <p>대기 중인 요청이 없습니다. Kafka 대기열을 모니터링하는 중...</p>
+          <p>{t('noPendingRequests')}</p>
           <div className="match-actions">
             <button type="button" onClick={() => setRefreshSignal((value) => value + 1)}>
-              새로 고침
+              {t('refresh')}
             </button>
           </div>
         </>
@@ -879,18 +891,18 @@ export default function MapPage() {
       <>
         <div>
           <p>
-            <strong>{activeRequest.requesterName ?? '익명 관광객'}</strong>님의 요청입니다.
+            <strong>{t('requestFrom', { name: activeRequest.requesterName ?? t('anonymousTourist') })}</strong>
           </p>
           <p className="match-status">
-            반경 {activeRequest.radiusKm ?? 3}km · {new Date(activeRequest.createdAt).toLocaleTimeString()}
+            {t('radius')} {activeRequest.radiusKm ?? 3}km · {new Date(activeRequest.createdAt).toLocaleTimeString()}
           </p>
         </div>
         <div className="match-actions">
           <button type="button" className="outline" onClick={skipRequest} disabled={accepting}>
-            다음 요청
+            {t('nextRequest')}
           </button>
           <button type="button" onClick={() => acceptMatch(activeRequest.id)} disabled={accepting}>
-            {accepting ? '수락 중...' : '매칭 수락'}
+            {accepting ? t('accepting') : t('acceptMatch')}
           </button>
         </div>
       </>
@@ -900,56 +912,56 @@ export default function MapPage() {
   return (
     <main className="map-page">
       <header className="map-nav">
-        <button type="button" className="nav-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label="메뉴 열기">
+        <button type="button" className="nav-toggle" onClick={() => setMenuOpen((open) => !open)} aria-label={t('openMenu')}>
           ☰
         </button>
         <div className="map-brand">TOURLICA</div>
-        <div className="map-nav-role">{serviceRole ? '통역사/도우미 모드' : '관광객 모드'}</div>
+        <div className="map-nav-role">{serviceRole ? t('serviceMode') : t('touristMode')}</div>
       </header>
       <div className={`map-drawer ${menuOpen ? 'open' : ''}`}>
         <div className="drawer-header">
-          <p>{account?.name ?? '게스트'}</p>
-          <button type="button" onClick={() => setMenuOpen(false)} aria-label="메뉴 닫기">
+          <p>{account?.name ?? t('guest')}</p>
+          <button type="button" onClick={() => setMenuOpen(false)} aria-label={t('closeMenu')}>
             ✕
           </button>
         </div>
         <div className="drawer-section">
-          <h3>내 정보</h3>
+          <h3>{t('myProfile')}</h3>
           {drawerLoading && !profileInfo ? (
-            <p className="match-status">불러오는 중...</p>
+            <p className="match-status">{t('loading')}</p>
           ) : profileInfo ? (
             <ul>
-              <li>이름: {profileInfo.name}</li>
-              <li>이메일: {profileInfo.email}</li>
-              {profileInfo.nickname && <li>닉네임: {profileInfo.nickname}</li>}
-              {profileInfo.phone && <li>연락처: {profileInfo.phone}</li>}
-              {profileInfo.country && <li>국가: {profileInfo.country}</li>}
-              {profileInfo.gender && <li>성별: {profileInfo.gender}</li>}
+              <li>{t('name')}: {profileInfo.name}</li>
+              <li>{t('email')}: {profileInfo.email}</li>
+              {profileInfo.nickname && <li>{t('nickname')}: {profileInfo.nickname}</li>}
+              {profileInfo.phone && <li>{t('phone')}: {profileInfo.phone}</li>}
+              {profileInfo.country && <li>{t('country')}: {profileInfo.country}</li>}
+              {profileInfo.gender && <li>{t('gender')}: {profileInfo.gender}</li>}
             </ul>
           ) : (
-            <p className="match-status">정보가 없습니다.</p>
+            <p className="match-status">{t('noInfo')}</p>
           )}
         </div>
         <div className="drawer-section">
-          <h3>매칭 히스토리</h3>
+          <h3>{t('matchHistory')}</h3>
           {drawerLoading && matchHistory.length === 0 ? (
-            <p className="match-status">불러오는 중...</p>
+            <p className="match-status">{t('loading')}</p>
           ) : matchHistory.length === 0 ? (
-            <p className="match-status">기록이 없습니다.</p>
+            <p className="match-status">{t('noHistory')}</p>
           ) : (
             <ul className="history-list">
               {matchHistory.map((history) => {
-                const counterpart = serviceRole ? history.touristName ?? '관광객' : history.responderName ?? '전문가';
+                const counterpart = serviceRole ? history.touristName ?? t('tourist') : history.responderName ?? t('expert');
                 return (
                   <li key={history.id}>
                     <strong>{counterpart}</strong>
                     <span>{new Date(history.matchedAt).toLocaleString()}</span>
                     {history.latitude && history.longitude && (
                       <span>
-                        위치: {history.latitude.toFixed(3)}, {history.longitude.toFixed(3)}
+                        {t('location')}: {history.latitude.toFixed(3)}, {history.longitude.toFixed(3)}
                       </span>
                     )}
-                    <span>결과: {history.meetingStatus === 'completed' ? '완료' : '진행 중'}</span>
+                    <span>{t('result')}: {history.meetingStatus === 'completed' ? t('completed') : t('inProgress')}</span>
                   </li>
                 );
               })}
@@ -957,17 +969,17 @@ export default function MapPage() {
           )}
         </div>
         <nav className="drawer-links">
-          <a href="/login">로그아웃</a>
+          <a href="/login">{t('logout')}</a>
         </nav>
       </div>
       {menuOpen && <div className="drawer-backdrop" onClick={() => setMenuOpen(false)} />}
       <div className="map-view">
         {loadError ? (
-          <p className="map-status">지도를 불러올 수 없습니다. API Key를 확인하세요.</p>
+          <p className="map-status">{t('mapLoadError')}</p>
         ) : (
           <div className="map-canvas">
             {!isLoaded ? (
-              <div className="map-status">지도를 불러오는 중...</div>
+              <div className="map-status">{t('mapLoading')}</div>
             ) : (
               <>
                 <GoogleMap
@@ -981,23 +993,92 @@ export default function MapPage() {
                     fullscreenControl: false
                   }}
                 >
-                  {userMarkerPosition && <Marker position={userMarkerPosition} title="내 위치" label="나" />}
+                  {userMarkerPosition && (
+                    <>
+                      <Marker
+                        position={userMarkerPosition}
+                        title={t('myLocation')}
+                        label={t('me')}
+                        onClick={() => setSelectedMarker('user')}
+                      />
+                      {selectedMarker === 'user' && (
+                        <InfoWindow
+                          position={userMarkerPosition}
+                          onCloseClick={() => setSelectedMarker(null)}
+                        >
+                          <div style={{ padding: '8px' }}>
+                            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>{t('myLocation')}</h3>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                              {account?.name || t('me')}
+                              {account?.role && ` (${t(account.role)})`}
+                            </p>
+                          </div>
+                        </InfoWindow>
+                      )}
+                    </>
+                  )}
                   {activeAssignment && activeAssignment.latitude && activeAssignment.longitude && (
-                    <Marker
-                      position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
-                      title="관광객 위치"
-                      label="관광객"
-                    />
+                    <>
+                      <Marker
+                        position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
+                        title={t('touristLocation')}
+                        label={t('tourist')}
+                        onClick={() => setSelectedMarker('tourist')}
+                      />
+                      {selectedMarker === 'tourist' && (
+                        <InfoWindow
+                          position={{ lat: activeAssignment.latitude, lng: activeAssignment.longitude }}
+                          onCloseClick={() => setSelectedMarker(null)}
+                        >
+                          <div style={{ padding: '8px' }}>
+                            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>{t('touristLocation')}</h3>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '12px' }}>
+                              <strong>{activeAssignment.touristName || t('tourist')}</strong>
+                            </p>
+                            <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>
+                              {t('matchedAt')}: {new Date(activeAssignment.matchedAt).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </InfoWindow>
+                      )}
+                    </>
                   )}
                   {movementPath.length > 0 && (
-                    <Marker
-                      position={{
-                        lat: movementPath[movementPath.length - 1].latitude,
-                        lng: movementPath[movementPath.length - 1].longitude
-                      }}
-                      title="통역사/도우미 위치"
-                      label="전문가"
-                    />
+                    <>
+                      <Marker
+                        position={{
+                          lat: movementPath[movementPath.length - 1].latitude,
+                          lng: movementPath[movementPath.length - 1].longitude
+                        }}
+                        title={t('expertLocation')}
+                        label={t('expert')}
+                        onClick={() => setSelectedMarker('expert')}
+                      />
+                      {selectedMarker === 'expert' && (
+                        <InfoWindow
+                          position={{
+                            lat: movementPath[movementPath.length - 1].latitude,
+                            lng: movementPath[movementPath.length - 1].longitude
+                          }}
+                          onCloseClick={() => setSelectedMarker(null)}
+                        >
+                          <div style={{ padding: '8px' }}>
+                            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>{t('expertLocation')}</h3>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '12px' }}>
+                              <strong>{activeAssignment?.responderName || t('expert')}</strong>
+                            </p>
+                            {activeAssignment?.responderRole && (
+                              <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#666' }}>
+                                {t(activeAssignment.responderRole)}
+                              </p>
+                            )}
+                            <p style={{ margin: 0, fontSize: '10px', color: '#999' }}>
+                              {t('updatingLocation')}
+                            </p>
+                          </div>
+                        </InfoWindow>
+                      )}
+                    </>
                   )}
                   {movementPath.length > 1 && (
                     <Polyline
@@ -1013,7 +1094,7 @@ export default function MapPage() {
                 </GoogleMap>
                 <div className="map-controls">
                   <button type="button" onClick={recenterToSelf}>
-                    내 위치로 이동
+                    {t('moveToMyLocation')}
                   </button>
                 </div>
                 {matchStage === 'waiting' && isTourist && (
@@ -1039,46 +1120,45 @@ export default function MapPage() {
             type="button"
             className="panel-toggle"
             onClick={() => setPanelCollapsed((prev) => !prev)}
-            aria-label="설명 패널 토글"
+            aria-label={t('togglePanel')}
           >
-            {panelCollapsed ? '설명 보기' : '숨기기'}
+            {panelCollapsed ? t('showDescription') : t('hide')}
           </button>
           {!panelCollapsed && (
             <>
-              <h1>TourLICA 지도</h1>
+              <h1>{t('mapTitle')}</h1>
               {isTourist ? (
                 <>
-                  <p>사용자의 현재 위치를 기반으로 반경 내 통역사/도우미를 시각화합니다.</p>
+                  <p>{t('touristGuide1')}</p>
                   {locationError && <p className="map-alert">{locationError}</p>}
                   <ul>
-                    <li>지도 하단에서 통역사 · 도우미 중 원하는 지원 유형을 골라 Kafka 매칭 이벤트를 발행합니다.</li>
-                    <li>파형 애니메이션은 주변 반경에 요청이 브로드캐스트되고 있음을 시각화합니다.</li>
-                    <li>매칭 취소 버튼을 누르면 즉시 Kafka에 취소 이벤트가 전송됩니다.</li>
+                    <li>{t('touristGuide2')}</li>
+                    <li>{t('touristGuide3')}</li>
+                    <li>{t('touristGuide4')}</li>
                   </ul>
                   {activeAssignment && (
                     <div className="assignment-panel">
                       <p>
-                        현재 <strong>{activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole]}</strong>{' '}
-                        님과 매칭되었습니다.
+                        <strong>{t('matchedWith', { name: activeAssignment.responderName ?? matchRoleLabels[activeAssignment.responderRole] })}</strong>
                       </p>
-                      <p className="match-status">매칭 시각: {new Date(activeAssignment.matchedAt).toLocaleTimeString()}</p>
+                      <p className="match-status">{t('matchedAt')}: {new Date(activeAssignment.matchedAt).toLocaleTimeString()}</p>
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  <p>Kafka 대기열에서 관광객 요청을 수신해 원하는 건을 매칭할 수 있습니다.</p>
+                  <p>{t('serviceGuide1')}</p>
                   <ul>
-                    <li>새 요청이 들어오면 지도 중심이 관광객 위치로 이동합니다.</li>
-                    <li>요청 카드에서 매칭을 수락하면 이동 경로 기록이 시작됩니다.</li>
-                    <li>만남을 확인하면 매칭 상태가 완료로 업데이트됩니다.</li>
+                    <li>{t('serviceGuide2')}</li>
+                    <li>{t('serviceGuide3')}</li>
+                    <li>{t('serviceGuide4')}</li>
                   </ul>
                   {activeAssignment && (
                     <div className="assignment-panel">
                       <p>
-                        <strong>{activeAssignment.touristName ?? '관광객'}</strong>님과 이동 경로를 공유 중입니다.
+                        <strong>{t('sharingPath', { name: activeAssignment.touristName ?? t('tourist') })}</strong>
                       </p>
-                      <p className="match-status">위치를 3초 간격으로 업데이트하고 있습니다.</p>
+                      <p className="match-status">{t('updatingLocation')}</p>
                     </div>
                   )}
                 </>

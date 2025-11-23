@@ -3,23 +3,26 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const socials = [
-  { label: 'Google로 계속하기', provider: 'google' },
-  { label: 'Apple로 계속하기', provider: 'apple' },
-  { label: 'Kakao로 계속하기', provider: 'kakao' },
-  { label: 'Naver로 계속하기', provider: 'naver' }
+  { label: 'Google', provider: 'google' },
+  { label: 'Apple', provider: 'apple' },
+  { label: 'Kakao', provider: 'kakao' },
+  { label: 'Naver', provider: 'naver' }
 ];
 
 const demoAccounts = [
-  { role: '관광객', email: 'traveler@tourlica.com', password: 'tour1234' },
-  { role: '통역사', email: 'interpreter@tourlica.com', password: 'lingo123' },
-  { role: '도우미', email: 'helper@tourlica.com', password: 'assist123' },
-  { role: '관리자', email: 'admin@tourlica.com', password: 'control123' }
+  { role: 'tourist', email: 'traveler@tourlica.com', password: 'tour1234' },
+  { role: 'interpreter', email: 'interpreter@tourlica.com', password: 'lingo123' },
+  { role: 'helper', email: 'helper@tourlica.com', password: 'assist123' },
+  { role: 'admin', email: 'admin@tourlica.com', password: 'control123' }
 ];
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations('Auth');
+  const tCommon = useTranslations('Common');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +33,7 @@ export default function LoginPage() {
     const password = formData.get('password');
 
     if (!email || !password) {
-      setError('아이디와 패스워드를 입력하세요.');
+      setError(tCommon('error'));
       return;
     }
 
@@ -47,25 +50,21 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error ?? '로그인에 실패했습니다.');
+        throw new Error(data?.error ?? t('loginFailed'));
       }
 
       if (!data?.account) {
-        throw new Error('계정 정보를 가져오지 못했습니다.');
+        throw new Error(tCommon('error'));
       }
 
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('tourlica.account', JSON.stringify(data.account));
-      }
-
-      if (data.account.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/map');
+        // Force reload to apply language change from new session
+        window.location.href = data.account.role === 'admin' ? '/admin' : '/map';
+        return;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
-    } finally {
+      setError(err instanceof Error ? err.message : t('loginFailed'));
       setLoading(false);
     }
   };
@@ -75,29 +74,29 @@ export default function LoginPage() {
       <div className="login-card" aria-live="polite">
         <header>
           <p className="eyebrow">Agent Console Access</p>
-          <h1>로그인</h1>
-          <p>TourLICA 계정으로 맞춤 플래너를 불러오세요.</p>
+          <h1>{t('login')}</h1>
+          <p>{tCommon('appName')}</p>
         </header>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            <span>아이디</span>
+            <span>{t('email')}</span>
             <input type="email" name="email" placeholder="name@example.com" autoComplete="username" required />
           </label>
           <label>
-            <span>패스워드</span>
+            <span>{t('password')}</span>
             <input type="password" name="password" placeholder="••••••••" autoComplete="current-password" required />
           </label>
           {error && <p className="form-error">{error}</p>}
           <button type="submit" disabled={loading}>
-            {loading ? '로그인 중...' : '로그인'}
+            {loading ? tCommon('loading') : t('login')}
           </button>
         </form>
         <div className="login-links">
-          <Link href="/signup">회원가입</Link>
-          <Link href="#reset">비밀번호 찾기</Link>
+          <Link href="/signup">{t('signup')}</Link>
+          <Link href="#reset">{t('password')}?</Link>
         </div>
         <div className="divider">
-          <span>또는</span>
+          <span>OR</span>
         </div>
         <div className="social-grid">
           {socials.map((social) => (
@@ -107,11 +106,11 @@ export default function LoginPage() {
           ))}
         </div>
         <div className="demo-accounts">
-          <p>샘플 계정</p>
+          <p>Demo Accounts</p>
           <ul>
             {demoAccounts.map((acct) => (
               <li key={acct.email}>
-                <strong>{acct.role}</strong>: {acct.email} / {acct.password}
+                <strong>{t(acct.role)}</strong>: {acct.email} / {acct.password}
               </li>
             ))}
           </ul>

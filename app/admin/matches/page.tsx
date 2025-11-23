@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Match {
     id: number;
@@ -26,6 +27,7 @@ interface Movement {
 }
 
 export default function MatchesPage() {
+    const t = useTranslations('Admin');
     const [matches, setMatches] = useState<Match[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -81,11 +83,21 @@ export default function MatchesPage() {
                 setIsModalOpen(false);
                 fetchMatches(page);
             } else {
-                alert('Failed to update match status');
+                alert(t('updateFailed'));
             }
         } catch (error) {
             console.error('Failed to update match:', error);
-            alert('Error updating match');
+            alert(t('updateFailed'));
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'enroute': return t('statusEnroute');
+            case 'awaiting_confirmation': return t('statusAwaitingConfirmation');
+            case 'completed': return t('statusCompleted');
+            case 'cancelled': return t('statusCancelled');
+            default: return status;
         }
     };
 
@@ -95,16 +107,16 @@ export default function MatchesPage() {
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Date</th>
-                            <th>Tourist</th>
-                            <th>Responder</th>
-                            <th>Status</th>
+                            <th>{t('id')}</th>
+                            <th>{t('date')}</th>
+                            <th>{t('tourist')}</th>
+                            <th>{t('responder')}</th>
+                            <th>{t('status')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={5} style={{ textAlign: 'center' }}>Loading...</td></tr>
+                            <tr><td colSpan={5} style={{ textAlign: 'center' }}>{t('loading')}</td></tr>
                         ) : matches.map((match) => (
                             <tr key={match.id} onClick={() => handleRowClick(match)}>
                                 <td>{match.id}</td>
@@ -118,7 +130,7 @@ export default function MatchesPage() {
                                 </td>
                                 <td>
                                     <span className={`status-badge ${match.meeting_status}`}>
-                                        {match.meeting_status}
+                                        {getStatusLabel(match.meeting_status)}
                                     </span>
                                 </td>
                             </tr>
@@ -133,17 +145,17 @@ export default function MatchesPage() {
                         disabled={page === 1}
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                     >
-                        Previous
+                        {t('previous')}
                     </button>
                     <span style={{ display: 'flex', alignItems: 'center' }}>
-                        Page {page} of {totalPages}
+                        {t('pageOf', { page, total: totalPages })}
                     </span>
                     <button
                         className="btn btn-secondary"
                         disabled={page === totalPages}
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     >
-                        Next
+                        {t('next')}
                     </button>
                 </div>
             </div>
@@ -153,19 +165,19 @@ export default function MatchesPage() {
                 <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Match Details #{selectedMatch.id}</h3>
+                            <h3>{t('matchDetails', { id: selectedMatch.id })}</h3>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
                         </div>
                         <form onSubmit={handleUpdateStatus}>
                             <div className="modal-body">
                                 <div className="detail-row">
-                                    <label>Tourist</label>
+                                    <label>{t('tourist')}</label>
                                     <div className="value">
                                         {selectedMatch.tourist_real_name} ({selectedMatch.tourist_email})
                                     </div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Responder</label>
+                                    <label>{t('responder')}</label>
                                     <div className="value">
                                         {selectedMatch.responder_name} ({selectedMatch.responder_email})
                                         <br />
@@ -173,24 +185,24 @@ export default function MatchesPage() {
                                     </div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Request Note</label>
+                                    <label>{t('requestNote')}</label>
                                     <div className="value">{selectedMatch.request_note || '-'}</div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Meeting Status</label>
+                                    <label>{t('meetingStatus')}</label>
                                     <select
                                         value={selectedMatch.meeting_status}
                                         onChange={(e) => setSelectedMatch({ ...selectedMatch, meeting_status: e.target.value })}
                                     >
-                                        <option value="enroute">Enroute</option>
-                                        <option value="awaiting_confirmation">Awaiting Confirmation</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
+                                        <option value="enroute">{t('statusEnroute')}</option>
+                                        <option value="awaiting_confirmation">{t('statusAwaitingConfirmation')}</option>
+                                        <option value="completed">{t('statusCompleted')}</option>
+                                        <option value="cancelled">{t('statusCancelled')}</option>
                                     </select>
                                 </div>
 
                                 <div className="detail-row">
-                                    <label>Movement History</label>
+                                    <label>{t('movementHistory')}</label>
                                     <div style={{
                                         maxHeight: '150px',
                                         overflowY: 'auto',
@@ -200,7 +212,7 @@ export default function MatchesPage() {
                                         fontSize: '0.875rem'
                                     }}>
                                         {movements.length === 0 ? (
-                                            <div style={{ color: '#a0aec0' }}>No movements recorded</div>
+                                            <div style={{ color: '#a0aec0' }}>{t('noMovements')}</div>
                                         ) : (
                                             movements.map((m, idx) => (
                                                 <div key={idx} style={{ marginBottom: '4px' }}>
@@ -213,8 +225,8 @@ export default function MatchesPage() {
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Update Status</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>{t('cancel')}</button>
+                                <button type="submit" className="btn btn-primary">{t('updateStatus')}</button>
                             </div>
                         </form>
                     </div>

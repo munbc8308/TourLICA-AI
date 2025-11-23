@@ -11,10 +11,22 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+import I18nProvider from '@/components/I18nProvider';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+import { loadMessages } from '@/lib/i18n';
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const messages = await loadMessages('en');
+
   return (
-    <html lang="ko">
-      <body>{children}</body>
+    <html lang="en">
+      <body>
+        <I18nProvider messages={messages}>
+          <LanguageSwitcher />
+          {children}
+        </I18nProvider>
+      </body>
     </html>
   );
 }

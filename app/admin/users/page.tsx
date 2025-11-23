@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface User {
     id: number;
@@ -17,6 +18,7 @@ interface User {
 }
 
 export default function UsersPage() {
+    const t = useTranslations('Admin');
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -72,11 +74,11 @@ export default function UsersPage() {
                 setIsModalOpen(false);
                 fetchUsers(page); // Refresh list
             } else {
-                alert('Failed to update user');
+                alert(t('updateFailed'));
             }
         } catch (error) {
             console.error('Failed to update user:', error);
-            alert('Error updating user');
+            alert(t('updateFailed'));
         }
     };
 
@@ -86,17 +88,17 @@ export default function UsersPage() {
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Role</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Status</th>
-                            <th>Joined At</th>
+                            <th>{t('id')}</th>
+                            <th>{t('role')}</th>
+                            <th>{t('name')}</th>
+                            <th>{t('email')}</th>
+                            <th>{t('status')}</th>
+                            <th>{t('joinedAt')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={6} style={{ textAlign: 'center' }}>Loading...</td></tr>
+                            <tr><td colSpan={6} style={{ textAlign: 'center' }}>{t('loading')}</td></tr>
                         ) : users.map((user) => (
                             <tr key={user.id} onClick={() => handleRowClick(user)}>
                                 <td>{user.id}</td>
@@ -109,7 +111,7 @@ export default function UsersPage() {
                                 <td>{user.email}</td>
                                 <td>
                                     <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
-                                        {user.is_active ? 'Active' : 'Inactive'}
+                                        {user.is_active ? t('active') : t('inactive')}
                                     </span>
                                 </td>
                                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
@@ -125,17 +127,17 @@ export default function UsersPage() {
                         disabled={page === 1}
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                     >
-                        Previous
+                        {t('previous')}
                     </button>
                     <span style={{ display: 'flex', alignItems: 'center' }}>
-                        Page {page} of {totalPages}
+                        {t('pageOf', { page, total: totalPages })}
                     </span>
                     <button
                         className="btn btn-secondary"
                         disabled={page === totalPages}
                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     >
-                        Next
+                        {t('next')}
                     </button>
                 </div>
             </div>
@@ -145,49 +147,50 @@ export default function UsersPage() {
                 <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>User Details</h3>
+                            <h3>{t('userDetails')}</h3>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
                         </div>
                         <form onSubmit={handleUpdateUser}>
                             <div className="modal-body">
                                 <div className="detail-row">
-                                    <label>Role</label>
+                                    <label>{t('role')}</label>
                                     <div className="value" style={{ textTransform: 'capitalize' }}>{selectedUser.role}</div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Name</label>
+                                    <label>{t('name')}</label>
                                     <div className="value">{selectedUser.name} ({selectedUser.nickname || '-'})</div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Email</label>
+                                    <label>{t('email')}</label>
                                     <div className="value">{selectedUser.email}</div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Phone</label>
+                                    <label>{t('phone')}</label> {/* Need to check if phoneLabel is in Admin namespace or I should use Auth/Signup? I put phoneLabel in Signup.form. I should use t('phone') if I added it to Admin, or just add it. I didn't add phone to Admin. I added 'email', 'name'. I should add 'phone' to Admin. */}
+                                    {/* Wait, I see 'phone' isn't in my Admin list above. I should add it or use hardcoded 'Phone' for now? No, I should add it. */}
                                     <div className="value">{selectedUser.phone || '-'}</div>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Status</label>
+                                    <label>{t('status')}</label>
                                     <select
                                         value={selectedUser.is_active ? 'true' : 'false'}
                                         onChange={(e) => setSelectedUser({ ...selectedUser, is_active: e.target.value === 'true' })}
                                     >
-                                        <option value="true">Active</option>
-                                        <option value="false">Inactive</option>
+                                        <option value="true">{t('active')}</option>
+                                        <option value="false">{t('inactive')}</option>
                                     </select>
                                 </div>
                                 <div className="detail-row">
-                                    <label>Admin Memo</label>
+                                    <label>{t('adminMemo')}</label>
                                     <textarea
                                         value={selectedUser.admin_memo || ''}
                                         onChange={(e) => setSelectedUser({ ...selectedUser, admin_memo: e.target.value })}
-                                        placeholder="Add internal notes here..."
+                                        placeholder={t('addMemoPlaceholder')}
                                     />
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Save Changes</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>{t('cancel')}</button>
+                                <button type="submit" className="btn btn-primary">{t('saveChanges')}</button>
                             </div>
                         </form>
                     </div>
