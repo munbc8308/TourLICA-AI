@@ -103,8 +103,8 @@ export default function MapPage() {
   const shouldShowMeetingPrompt =
     Boolean(
       activeAssignment &&
-        activeAssignment.meetingStatus === 'awaiting_confirmation' &&
-        activeAssignment.meetingStatusUpdatedAt !== meetingPromptDismissedVersion
+      activeAssignment.meetingStatus === 'awaiting_confirmation' &&
+      activeAssignment.meetingStatusUpdatedAt !== meetingPromptDismissedVersion
     );
   const userMarkerPosition = selfLocation ?? (!serviceRole ? center : null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -212,7 +212,7 @@ export default function MapPage() {
           setProfileInfo(data.account);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     const perspective = serviceRole ? 'responder' : 'tourist';
     const fetchHistory = fetch('/api/match/history', {
@@ -361,7 +361,7 @@ export default function MapPage() {
   const handleMeetingArrival = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
 
-    const sendRequest = async (coords?: GeolocationCoordinates) => {
+    const sendRequest = async (lat?: number, lng?: number) => {
       try {
         const response = await fetch('/api/match/meeting', {
           method: 'POST',
@@ -370,8 +370,8 @@ export default function MapPage() {
             assignmentId: activeAssignment.id,
             accountId: account.id,
             action: 'arrived',
-            latitude: coords?.latitude ?? null,
-            longitude: coords?.longitude ?? null
+            latitude: lat ?? null,
+            longitude: lng ?? null
           })
         });
         if (!response.ok) {
@@ -386,21 +386,19 @@ export default function MapPage() {
       }
     };
 
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => sendRequest(pos.coords),
-        () => sendRequest(undefined),
-        { enableHighAccuracy: true }
-      );
+    // Use cached location if available
+    const coords = userLocationRef.current;
+    if (coords) {
+      sendRequest(coords.lat, coords.lng);
     } else {
-      sendRequest(undefined);
+      sendRequest(undefined, undefined);
     }
   }, [activeAssignment, account?.id, fetchAssignmentSnapshot]);
 
   const handleMeetingConfirm = useCallback(async () => {
     if (!activeAssignment || !account?.id) return;
 
-    const sendConfirm = async (coords?: GeolocationCoordinates) => {
+    const sendConfirm = async (lat?: number, lng?: number) => {
       try {
         const response = await fetch('/api/match/meeting', {
           method: 'POST',
@@ -409,8 +407,8 @@ export default function MapPage() {
             assignmentId: activeAssignment.id,
             accountId: account.id,
             action: 'confirm',
-            latitude: coords?.latitude ?? null,
-            longitude: coords?.longitude ?? null
+            latitude: lat ?? null,
+            longitude: lng ?? null
           })
         });
         if (!response.ok) {
@@ -425,14 +423,12 @@ export default function MapPage() {
       }
     };
 
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => sendConfirm(pos.coords),
-        () => sendConfirm(undefined),
-        { enableHighAccuracy: true }
-      );
+    // Use cached location if available to avoid delay
+    const coords = userLocationRef.current;
+    if (coords) {
+      sendConfirm(coords.lat, coords.lng);
     } else {
-      sendConfirm(undefined);
+      sendConfirm(undefined, undefined);
     }
   }, [activeAssignment, account?.id, fetchAssignmentSnapshot, resetToInitialState]);
 
@@ -541,7 +537,7 @@ export default function MapPage() {
     }
 
     loadMovements();
-    const interval = window.setInterval(loadMovements, 3000);
+    const interval = window.setInterval(loadMovements, 5000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
@@ -572,7 +568,7 @@ export default function MapPage() {
             latitude: coords.lat,
             longitude: coords.lng
           })
-        }).catch(() => {});
+        }).catch(() => { });
       } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -587,16 +583,16 @@ export default function MapPage() {
                 latitude: location.lat,
                 longitude: location.lng
               })
-            }).catch(() => {});
+            }).catch(() => { });
           },
-          () => {},
+          () => { },
           { maximumAge: 0, enableHighAccuracy: true }
         );
       }
     };
 
     sendPosition();
-    const interval = window.setInterval(sendPosition, 3000);
+    const interval = window.setInterval(sendPosition, 10000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);

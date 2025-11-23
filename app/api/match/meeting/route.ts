@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { confirmMeeting, requestMeetingConfirmation } from '@/lib/match-requests';
+import { getKafkaProducer } from '@/lib/kafka';
 
 export const dynamic = 'force-dynamic';
+
+const topic = process.env.KAFKA_TOPIC ?? 'tourlica-events';
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -18,11 +21,28 @@ export async function POST(request: Request) {
   }
 
   try {
+    const producer = await getKafkaProducer();
+
     if (action === 'arrived') {
       const result = await requestMeetingConfirmation({ assignmentId, responderAccountId: accountId, latitude: latValue, longitude: lngValue });
       if (!result) {
         return NextResponse.json({ error: '매칭 정보를 찾을 수 없습니다.' }, { status: 404 });
       }
+
+      // Publish event for tourist
+      await producer.send({
+        topic,
+        messages: [{
+          value: JSON.stringify({
+            type: 'match_response',
+            touristAccountId: result.touristAccountId,
+            assignmentId: result.id,
+            status: result.meetingStatus,
+            ts: Date.now()
+          })
+        }]
+      });
+
       return NextResponse.json({ assignment: result });
     }
 
@@ -31,6 +51,22 @@ export async function POST(request: Request) {
       if (!result) {
         return NextResponse.json({ error: '매칭 정보를 찾을 수 없습니다.' }, { status: 404 });
       }
+
+      // Publish event for responder (though they might be polling, it's good practice)
+      // And also for tourist to confirm completion
+      await producer.send({
+        topic,
+        messages: [{
+          value: JSON.stringify({
+            type: 'match_response',
+            touristAccountId: result.touristAccountId,
+            assignmentId: result.id,
+            status: result.meetingStatus,
+            ts: Date.now()
+          })
+        }]
+      });
+
       return NextResponse.json({ assignment: result, reset: true });
     }
 

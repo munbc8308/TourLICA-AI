@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS "${schema}".accounts (
   country TEXT,
   device_fingerprint TEXT,
   interpreter_code TEXT UNIQUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  admin_memo TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -100,7 +102,7 @@ CREATE TABLE IF NOT EXISTS "${schema}".match_assignments (
 CREATE TABLE IF NOT EXISTS "${schema}".match_movements (
   id SERIAL PRIMARY KEY,
   assignment_id INTEGER REFERENCES "${schema}".match_assignments(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('responder')),
+  role TEXT NOT NULL CHECK (role IN ('responder', 'interpreter', 'helper', 'tourist')),
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -121,7 +123,9 @@ const accountInserts = [
     phone: '+82-10-1234-1234',
     gender: 'male',
     country: 'United States',
-    device_fingerprint: 'seed-device-tourist'
+    device_fingerprint: 'seed-device-tourist',
+    is_active: true,
+    admin_memo: 'VIP Customer'
   },
   {
     role: 'interpreter',
@@ -133,7 +137,8 @@ const accountInserts = [
     gender: 'female',
     country: 'Korea',
     device_fingerprint: 'seed-device-interpreter',
-    interpreter_code: 'INT-0001'
+    interpreter_code: 'INT-0001',
+    is_active: true
   },
   {
     role: 'helper',
@@ -144,7 +149,8 @@ const accountInserts = [
     phone: '+82-10-8888-5555',
     gender: 'male',
     country: 'Korea',
-    device_fingerprint: 'seed-device-helper'
+    device_fingerprint: 'seed-device-helper',
+    is_active: true
   },
   {
     role: 'admin',
@@ -155,7 +161,8 @@ const accountInserts = [
     phone: '+82-2-555-0000',
     gender: 'prefer-not-to-say',
     country: 'Korea',
-    device_fingerprint: 'seed-device-admin'
+    device_fingerprint: 'seed-device-admin',
+    is_active: true
   }
 ];
 
@@ -174,6 +181,8 @@ async function ensureAccountTable(client, schema) {
     `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS country TEXT`,
     `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS device_fingerprint TEXT`,
     `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS interpreter_code TEXT`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`,
+    `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS admin_memo TEXT`,
     `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ`
   ];
 
@@ -184,6 +193,9 @@ async function ensureAccountTable(client, schema) {
   await client.query(`ALTER TABLE ${table} ALTER COLUMN created_at SET DEFAULT NOW()`);
   await client.query(`UPDATE ${table} SET created_at = NOW() WHERE created_at IS NULL`);
   await client.query(`ALTER TABLE ${table} ALTER COLUMN created_at SET NOT NULL`);
+
+  await client.query(`UPDATE ${table} SET is_active = TRUE WHERE is_active IS NULL`);
+  await client.query(`ALTER TABLE ${table} ALTER COLUMN is_active SET NOT NULL`);
 
   await client.query(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS accounts_role_check`);
   await client.query(
@@ -213,6 +225,10 @@ async function seed() {
 
     // Create tables with explicit schema qualification
     const schemaSql = getSchemaSql(schema);
+
+    // Drop match_movements to ensure schema update
+    await client.query(`DROP TABLE IF EXISTS "${schema}".match_movements CASCADE`);
+
     await client.query(schemaSql);
     await client.query(
       `ALTER TABLE match_assignments
@@ -227,8 +243,8 @@ async function seed() {
     await Promise.all(
       accountInserts.map((acct) =>
         client.query(
-          `INSERT INTO accounts (role, name, nickname, email, password, phone, gender, country, device_fingerprint, interpreter_code)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `INSERT INTO accounts (role, name, nickname, email, password, phone, gender, country, device_fingerprint, interpreter_code, is_active, admin_memo)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (email) DO UPDATE SET
              role = EXCLUDED.role,
              name = EXCLUDED.name,
@@ -238,7 +254,9 @@ async function seed() {
              gender = EXCLUDED.gender,
              country = EXCLUDED.country,
              device_fingerprint = EXCLUDED.device_fingerprint,
-             interpreter_code = EXCLUDED.interpreter_code`,
+             interpreter_code = EXCLUDED.interpreter_code,
+             is_active = EXCLUDED.is_active,
+             admin_memo = EXCLUDED.admin_memo`,
           [
             acct.role,
             acct.name,
@@ -249,7 +267,9 @@ async function seed() {
             acct.gender ?? null,
             acct.country ?? null,
             acct.device_fingerprint ?? null,
-            acct.interpreter_code ?? null
+            acct.interpreter_code ?? null,
+            acct.is_active ?? true,
+            acct.admin_memo ?? null
           ]
         )
       )

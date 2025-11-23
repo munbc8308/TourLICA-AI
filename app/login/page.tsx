@@ -58,7 +58,11 @@ export default function LoginPage() {
         sessionStorage.setItem('tourlica.account', JSON.stringify(data.account));
       }
 
-      router.push('/map');
+      if (data.account.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/map');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
     } finally {
