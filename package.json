@@ -18,7 +18,8 @@
     "next-intl": "^4.5.5",
     "pg": "^8.16.3",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "redis": "^4.7.0"
   },
   "devDependencies": {
     "@types/node": "20.11.30",
@@ -29,6 +30,7 @@
     "eslint-config-next": "14.2.3",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "tsx": "^4.19.2",
     "typescript": "5.4.5"
   }
 }
